@@ -73,6 +73,7 @@ final class DespieceService
             $largo,
             $alto,
             $vanosM2,
+            $config->escuadriaAncho,
         );
     }
 

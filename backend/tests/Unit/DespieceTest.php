@@ -175,3 +175,38 @@ describe('datos que no cierran', function () {
         (new DespieceService)->deCara(Medida::cero(), m(2.4), [], config2x3());
     })->throws(UnprocessableEntityHttpException::class, 'largo y alto mayores que cero');
 });
+
+describe('cavidad, como dato informativo', function () {
+    it('calcula cuanto del muro ocupa la madera', function () {
+        // Cada pieza ocupa, en el plano del muro, su largo por el espesor de la
+        // escuadria: 41 mm en un 2x3.
+        $d = (new DespieceService)->deCara(m(6), m(2.4), [], config2x3());
+
+        expect($d->areaEstructuraM2)->toBeGreaterThan(0.0)
+            ->and($d->areaEstructuraM2)->toBe(round($d->metrosLinealesTotales() * 0.041, 4));
+    });
+
+    it('la cavidad es lo que queda tras descontar vanos y estructura', function () {
+        $d = (new DespieceService)->deCara(m(6), m(2.4), [], config2x3());
+
+        expect($d->cavidadM2())->toBe(round($d->superficieNetaM2() - $d->areaEstructuraM2, 4))
+            ->and($d->cavidadM2())->toBeLessThan($d->superficieNetaM2());
+    });
+
+    it('no cambia lo que se compra: es solo informacion', function () {
+        // El aislante se sigue cotizando sobre la superficie neta. El 19% que
+        // ocupa la madera se compensa con lo que se pierde al cortar el rollo en
+        // tiras del ancho de la cavidad.
+        $d = (new DespieceService)->deCara(m(6), m(2.4), [], config2x3());
+
+        expect($d->superficieNetaM2())->toBe(14.4);
+    });
+
+    it('se suma al combinar varias caras', function () {
+        $s = new DespieceService;
+        $una = $s->deCara(m(6), m(2.4), [], config2x3());
+        $dos = Despiece::combinar($una, $una);
+
+        expect($dos->areaEstructuraM2)->toBe(round($una->areaEstructuraM2 * 2, 4));
+    });
+});

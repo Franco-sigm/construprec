@@ -15,12 +15,29 @@ final readonly class Despiece
         public array $piezas,
         public float $superficieBrutaM2,
         public float $superficieVanosM2,
+        public float $areaEstructuraM2 = 0.0,
     ) {}
 
     /** Superficie que efectivamente se recubre: la del muro menos los huecos. */
     public function superficieNetaM2(): float
     {
         return round(max(0.0, $this->superficieBrutaM2 - $this->superficieVanosM2), 4);
+    }
+
+    /**
+     * Superficie de cavidad: lo que queda del muro despues de descontar los vanos
+     * y la madera de la estructura.
+     *
+     * Es dato informativo y no entra en el calculo de ninguna capa. El aislante se
+     * cotiza igual sobre la superficie neta, porque el 19% que ocupa la madera se
+     * compensa con lo que se pierde al cortar el rollo en tiras del ancho de la
+     * cavidad: descontar solo la madera y olvidar el corte deja la obra corta, que
+     * es el error caro. Se expone para que se pueda ver el numero y decidir en un
+     * proyecto puntual si conviene apretar la merma.
+     */
+    public function cavidadM2(): float
+    {
+        return round(max(0.0, $this->superficieNetaM2() - $this->areaEstructuraM2), 4);
     }
 
     /** @return list<Pieza> */
@@ -55,6 +72,7 @@ final readonly class Despiece
         $agrupadas = [];
         $bruta = 0.0;
         $vanos = 0.0;
+        $estructura = 0.0;
 
         foreach ($despieces as $despiece) {
             foreach ($despiece->piezas as $pieza) {
@@ -67,6 +85,7 @@ final readonly class Despiece
 
             $bruta += $despiece->superficieBrutaM2;
             $vanos += $despiece->superficieVanosM2;
+            $estructura += $despiece->areaEstructuraM2;
         }
 
         // Orden estable: por rol y de mayor a menor largo. Que la lista no cambie
@@ -75,7 +94,7 @@ final readonly class Despiece
         $piezas = array_values($agrupadas);
         usort($piezas, fn (Pieza $a, Pieza $b) => [$a->rol->value, -$a->largo->mm] <=> [$b->rol->value, -$b->largo->mm]);
 
-        return new self($piezas, round($bruta, 4), round($vanos, 4));
+        return new self($piezas, round($bruta, 4), round($vanos, 4), round($estructura, 4));
     }
 
     public static function vacio(): self
@@ -90,6 +109,8 @@ final readonly class Despiece
             'superficie_bruta_m2' => $this->superficieBrutaM2,
             'superficie_vanos_m2' => $this->superficieVanosM2,
             'superficie_neta_m2' => $this->superficieNetaM2(),
+            'area_estructura_m2' => $this->areaEstructuraM2,
+            'cavidad_m2' => $this->cavidadM2(),
             'piezas' => array_map(fn (Pieza $p) => [
                 'rol' => $p->rol->value,
                 'etiqueta' => $p->rol->etiqueta(),
@@ -103,10 +124,20 @@ final readonly class Despiece
     /**
      * Helper interno para construir el resultado de una cara.
      *
+     * El area de estructura se calcula con el espesor de la pieza para todos los
+     * roles, incluido el dintel, que en rigor va de canto y ocupa algo mas. La
+     * diferencia es cercana al 1% de un dato que de todos modos es informativo, y
+     * no justifica que este objeto tenga que conocer la escuadria del dintel.
+     *
      * @param  list<Pieza>  $piezas
      */
-    public static function deCara(array $piezas, Medida $largo, Medida $alto, float $vanosM2): self
+    public static function deCara(array $piezas, Medida $largo, Medida $alto, float $vanosM2, Medida $espesorPieza): self
     {
-        return new self($piezas, $largo->porM2($alto), round($vanosM2, 4));
+        $estructura = array_sum(array_map(
+            fn (Pieza $p) => $p->metrosLineales() * $espesorPieza->metros(),
+            $piezas,
+        ));
+
+        return new self($piezas, $largo->porM2($alto), round($vanosM2, 4), round($estructura, 4));
     }
 }
