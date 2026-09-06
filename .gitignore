@@ -17,3 +17,9 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Herramientas de IA: configuración local de cada quien, no del proyecto
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+.mcp.json
