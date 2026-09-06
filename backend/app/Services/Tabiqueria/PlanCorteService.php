@@ -19,6 +19,13 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * 2,318 m deja 0,882 m libres en una tira de 3,2 m, y un tramo bajo ventana de
  * 0,859 m cabe justo ahi. Calculando cada largo por separado esa madera se
  * compra dos veces.
+ *
+ * El orden de mayor a menor deja las cadenetas al final, que es donde tienen que
+ * ir: al ser la pieza mas corta del tabique, entran en los recortes que ya dejaron
+ * los cortes largos. En una planta de 6 x 4 eso significa que una fila completa de
+ * cadenetas, casi 15 metros lineales, no cuesta ninguna tira adicional; solo baja
+ * el desperdicio. Meterlas antes las repartiria en tiras propias y obligaria a
+ * comprar madera para algo que ya estaba pagado.
  */
 final class PlanCorteService
 {

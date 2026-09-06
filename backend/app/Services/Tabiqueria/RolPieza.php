@@ -35,6 +35,15 @@ enum RolPieza: string
     case PieDerechoSobreVano = 'pie_derecho_sobre_vano';
 
     /**
+     * Horizontal entre dos pies derechos, a media altura.
+     *
+     * Traba los pies derechos para que no pandeen y le da apoyo al canto de las
+     * planchas de revestimiento. Es la pieza mas corta del tabique, asi que sale
+     * del recorte que dejan los cortes largos en vez de consumir tiras nuevas.
+     */
+    case Cadeneta = 'cadeneta';
+
+    /**
      * Si la pieza es una corrida que admite empalme.
      *
      * Distingue como se compra. Una solera de 6 m se arma con dos tiras de 3,2 m
@@ -64,6 +73,7 @@ enum RolPieza: string
             self::Alfeizar => 'Alfeizar',
             self::PieDerechoBajoVano => 'Pie derecho bajo vano',
             self::PieDerechoSobreVano => 'Pie derecho sobre vano',
+            self::Cadeneta => 'Cadeneta',
         };
     }
 }

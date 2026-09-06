@@ -15,9 +15,9 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * que el vano interrumpe.
  *
  * LO QUE NO MODELA, a proposito: encuentros entre tabiques perpendiculares,
- * arriostramientos diagonales, cadenetas intermedias y refuerzos de esquina. Son
- * decisiones que dependen del proyecto estructural, no de la geometria del muro,
- * y meterlas aca daria una precision que el dato de entrada no respalda.
+ * arriostramientos diagonales y refuerzos de esquina. Son decisiones que dependen
+ * del proyecto estructural, no de la geometria del muro, y meterlas aca daria una
+ * precision que el dato de entrada no respalda.
  */
 final class DespieceService
 {
@@ -60,6 +60,12 @@ final class DespieceService
             $piezas[] = new Pieza(RolPieza::PieDerecho, $altoPieDerecho, $pilaresBase);
         }
 
+        $cadenetas = $this->contarCadenetas($largo, $vanos, $config);
+
+        if ($cadenetas > 0) {
+            $piezas[] = new Pieza(RolPieza::Cadeneta, $config->largoCadeneta(), $cadenetas);
+        }
+
         $vanosM2 = array_sum(array_map(fn (Vano $v) => $v->superficieM2(), $vanos));
 
         return Despiece::deCara(
@@ -68,6 +74,30 @@ final class DespieceService
             $alto,
             $vanosM2,
         );
+    }
+
+    /**
+     * Cuantas cadenetas lleva la cara.
+     *
+     * Va una por cada espacio libre entre pies derechos y por cada fila. Los
+     * espacios que ocupa un vano no llevan: ahi la trabazon la dan el dintel y el
+     * alfeizar, que cumplen la misma funcion a distinta altura.
+     *
+     * @param  list<Vano>  $vanos
+     */
+    private function contarCadenetas(Medida $largo, array $vanos, ConfiguracionTabique $config): int
+    {
+        if ($config->filasCadenetas === 0) {
+            return 0;
+        }
+
+        $espacios = (int) ceil($largo->dividirPor($config->separacion));
+
+        foreach ($vanos as $vano) {
+            $espacios -= ((int) ceil($vano->ancho->dividirPor($config->separacion))) * $vano->cantidad;
+        }
+
+        return max(0, $espacios) * $config->filasCadenetas;
     }
 
     /**

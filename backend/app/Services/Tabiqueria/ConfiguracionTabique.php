@@ -30,6 +30,7 @@ final readonly class ConfiguracionTabique
         public int $solerasSuperiores = 1,
         public ?Medida $escuadriaDintelAlto = null,
         public float $mermaPct = 0.0,
+        public int $filasCadenetas = 1,
     ) {
         if ($separacion->esCero()) {
             throw new InvalidArgumentException('La separacion entre pies derechos no puede ser cero.');
@@ -46,6 +47,22 @@ final readonly class ConfiguracionTabique
         if ($mermaPct < 0) {
             throw new InvalidArgumentException('La merma no puede ser negativa.');
         }
+
+        if ($filasCadenetas < 0) {
+            throw new InvalidArgumentException('Las filas de cadenetas no pueden ser negativas.');
+        }
+    }
+
+    /**
+     * Largo de corte de una cadeneta: la luz libre entre dos pies derechos.
+     *
+     * La separacion se mide entre ejes, asi que hay que descontar un espesor
+     * completo de pieza para llegar a lo que realmente hay que cortar. Con
+     * separacion de 40 cm y un 2x3 de 41 mm, la cadeneta mide 359 mm y no 400.
+     */
+    public function largoCadeneta(): Medida
+    {
+        return $this->separacion->menos($this->escuadriaAncho);
     }
 
     /** Cuanto se come el alto del muro entre solera inferior y superiores. */
