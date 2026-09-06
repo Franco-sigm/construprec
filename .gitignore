@@ -1,0 +1,19 @@
+# Dependencias: se reconstruyen con composer install / npm install
+node_modules/
+vendor/
+
+# Credenciales: nunca al repositorio, solo el .env.example versionado
+.env
+.env.*
+!.env.example
+
+# Compilados del frontend
+dist/
+build/
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

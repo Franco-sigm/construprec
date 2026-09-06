@@ -1,0 +1,13 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+        - database/
+        - routes/
+
+    # Nivel 5 como punto de partida: exige tipos en firmas y detecta
+    # llamadas a metodos inexistentes sin ahogar en falsos positivos.
+    # Se sube de a uno cuando el codigo ya pasa limpio.
+    level: 5
