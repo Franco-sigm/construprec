@@ -1,9 +1,9 @@
 <?php
 
+use App\Services\Madera\Despiece;
+use App\Services\Madera\RolPieza;
 use App\Services\Tabiqueria\ConfiguracionTabique;
-use App\Services\Tabiqueria\Despiece;
 use App\Services\Tabiqueria\DespieceService;
-use App\Services\Tabiqueria\RolPieza;
 use App\Services\Tabiqueria\TipoVano;
 use App\Services\Tabiqueria\Vano;
 use App\Support\Medida;

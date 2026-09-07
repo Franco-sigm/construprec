@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Tabiqueria;
+namespace App\Services\Madera;
 
 use App\Support\Medida;
 
@@ -122,7 +122,7 @@ final readonly class Despiece
     }
 
     /**
-     * Helper interno para construir el resultado de una cara.
+     * Construye el resultado a partir de las piezas y la superficie que cubren.
      *
      * El area de estructura se calcula con el espesor de la pieza para todos los
      * roles, incluido el dintel, que en rigor va de canto y ocupa algo mas. La
@@ -131,7 +131,7 @@ final readonly class Despiece
      *
      * @param  list<Pieza>  $piezas
      */
-    public static function deCara(array $piezas, Medida $largo, Medida $alto, float $vanosM2, Medida $espesorPieza): self
+    public static function desdePiezas(array $piezas, Medida $largo, Medida $alto, float $vanosM2, Medida $espesorPieza): self
     {
         $estructura = array_sum(array_map(
             fn (Pieza $p) => $p->metrosLineales() * $espesorPieza->metros(),

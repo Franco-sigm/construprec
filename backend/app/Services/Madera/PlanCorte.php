@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Tabiqueria;
+namespace App\Services\Madera;
 
 use App\Support\Medida;
 

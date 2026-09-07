@@ -6,13 +6,13 @@ use App\Models\PresupuestoLinea;
 use App\Services\Capas\Capa;
 use App\Services\Capas\ConsumoCapa;
 use App\Services\Capas\ConsumoCapaService;
+use App\Services\Madera\Despiece;
+use App\Services\Madera\Pieza;
+use App\Services\Madera\PlanCorte;
+use App\Services\Madera\PlanCorteService;
+use App\Services\Madera\RolPieza;
 use App\Services\Tabiqueria\ConfiguracionTabique;
-use App\Services\Tabiqueria\Despiece;
 use App\Services\Tabiqueria\DespieceService;
-use App\Services\Tabiqueria\Pieza;
-use App\Services\Tabiqueria\PlanCorte;
-use App\Services\Tabiqueria\PlanCorteService;
-use App\Services\Tabiqueria\RolPieza;
 use App\Support\Medida;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
@@ -58,7 +58,7 @@ final class Calculadora
 
         $despiece = $this->conPostesDeEsquina($despiece, $caras, $config, $esquinas);
 
-        $plan = $this->planCorte->para($despiece->piezas, $config);
+        $plan = $this->planCorte->para($despiece->piezas, $config->parametrosCorte());
 
         $materiales = [$this->madera($plan, $despiece, $nombreMadera)];
 

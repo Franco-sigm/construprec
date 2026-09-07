@@ -2,8 +2,8 @@
 
 namespace App\Services\Presupuesto;
 
-use App\Services\Tabiqueria\Despiece;
-use App\Services\Tabiqueria\PlanCorte;
+use App\Services\Madera\Despiece;
+use App\Services\Madera\PlanCorte;
 
 /**
  * Todo lo que se puede saber de un proyecto antes de conocer un solo precio.

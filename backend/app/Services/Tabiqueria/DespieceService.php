@@ -2,6 +2,9 @@
 
 namespace App\Services\Tabiqueria;
 
+use App\Services\Madera\Despiece;
+use App\Services\Madera\Pieza;
+use App\Services\Madera\RolPieza;
 use App\Support\Medida;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
@@ -64,7 +67,7 @@ final class DespieceService
 
         $vanosM2 = array_sum(array_map(fn (Vano $v) => $v->superficieM2(), $vanos));
 
-        return Despiece::deCara(
+        return Despiece::desdePiezas(
             array_values(array_filter($piezas, fn (Pieza $p) => $p->cantidad > 0)),
             $largo,
             $alto,

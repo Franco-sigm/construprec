@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Tabiqueria;
+namespace App\Services\Madera;
 
 use App\Support\Medida;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
@@ -32,9 +32,9 @@ final class PlanCorteService
     /**
      * @param  list<Pieza>  $piezas
      */
-    public function para(array $piezas, ConfiguracionTabique $config): PlanCorte
+    public function para(array $piezas, ParametrosCorte $parametros): PlanCorte
     {
-        $largoComercial = $config->largoComercial;
+        $largoComercial = $parametros->largoComercial;
 
         [$corridas, $sueltas] = $this->separarPorTipo($piezas);
 
@@ -45,11 +45,11 @@ final class PlanCorteService
         $tirasCorridas = (int) ceil($metrosCorridas / $largoComercial->metros());
 
         return new PlanCorte(
-            tiras: $this->empaquetar($sueltas, $largoComercial, $config->anchoCorteMm),
+            tiras: $this->empaquetar($sueltas, $largoComercial, $parametros->anchoCorteMm),
             tirasCorridas: $tirasCorridas,
             metrosCorridas: $metrosCorridas,
             largoComercial: $largoComercial,
-            mermaPct: $config->mermaPct,
+            mermaPct: $parametros->mermaPct,
         );
     }
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Tabiqueria;
+namespace App\Services\Madera;
 
 /**
  * Que funcion cumple cada pieza dentro del tabique.
@@ -58,6 +58,31 @@ enum RolPieza: string
      */
     case PosteEsquina = 'poste_esquina';
 
+    // --- techumbre ---
+
+    /** El inclinado que baja del caballete al alero. Define la pendiente. */
+    case Par = 'par';
+
+    /**
+     * El horizontal que une los dos pares de muro a muro.
+     *
+     * Es lo que impide que el techo se abra: sin el, cada par empuja su muro
+     * hacia afuera y la cercha se desarma sola.
+     */
+    case Tirante = 'tirante';
+
+    /** El vertical del centro, del tirante al caballete. */
+    case Pendolon = 'pendolon';
+
+    /** Las dos que van del pie del pendolon a la mitad de cada par. */
+    case Diagonal = 'diagonal';
+
+    /** Las horizontales que cruzan las cerchas y reciben la cubierta. */
+    case Costanera = 'costanera';
+
+    /** La viga del caballete, donde se encuentran los dos faldones. */
+    case Cumbrera = 'cumbrera';
+
     /**
      * Si la pieza es una corrida que admite empalme.
      *
@@ -71,7 +96,10 @@ enum RolPieza: string
     public function esCorrida(): bool
     {
         return match ($this) {
-            self::SoleraInferior, self::SoleraSuperior => true,
+            // Las soleras se empalman sobre un pie derecho, y las costaneras y la
+            // cumbrera sobre una cercha: en los tres casos lo que importa son los
+            // metros lineales y no de que largo es cada tramo.
+            self::SoleraInferior, self::SoleraSuperior, self::Costanera, self::Cumbrera => true,
             default => false,
         };
     }
@@ -90,6 +118,12 @@ enum RolPieza: string
             self::PieDerechoSobreVano => 'Pie derecho sobre vano',
             self::Cadeneta => 'Cadeneta',
             self::PosteEsquina => 'Poste de esquina',
+            self::Par => 'Par',
+            self::Tirante => 'Tirante',
+            self::Pendolon => 'Pendolón',
+            self::Diagonal => 'Diagonal',
+            self::Costanera => 'Costanera',
+            self::Cumbrera => 'Cumbrera',
         };
     }
 }

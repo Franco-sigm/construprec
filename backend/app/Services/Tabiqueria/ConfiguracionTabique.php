@@ -2,6 +2,7 @@
 
 namespace App\Services\Tabiqueria;
 
+use App\Services\Madera\ParametrosCorte;
 use App\Support\Medida;
 use InvalidArgumentException;
 
@@ -182,6 +183,12 @@ final readonly class ConfiguracionTabique
         $cercano = $this->anchoModularMasCercano($anchoVano);
 
         return $cercano !== null && abs($cercano->mm - $anchoVano->mm) <= 1;
+    }
+
+    /** Lo que el plan de corte necesita: largo de tira, descarte y ancho de disco. */
+    public function parametrosCorte(): ParametrosCorte
+    {
+        return new ParametrosCorte($this->largoComercial, $this->mermaPct, $this->anchoCorteMm);
     }
 
     /**

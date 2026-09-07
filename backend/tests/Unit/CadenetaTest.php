@@ -1,10 +1,10 @@
 <?php
 
+use App\Services\Madera\Despiece;
+use App\Services\Madera\PlanCorteService;
+use App\Services\Madera\RolPieza;
 use App\Services\Tabiqueria\ConfiguracionTabique;
-use App\Services\Tabiqueria\Despiece;
 use App\Services\Tabiqueria\DespieceService;
-use App\Services\Tabiqueria\PlanCorteService;
-use App\Services\Tabiqueria\RolPieza;
 use App\Services\Tabiqueria\Vano;
 use App\Support\Medida;
 use App\Support\Unidad;
@@ -88,7 +88,7 @@ describe('salen del recorte, no de tiras nuevas', function () {
             $s->deCara(mt(4), mt(2.4), [], $config),
         );
 
-        return [$t, (new PlanCorteService)->para($t->piezas, $config)];
+        return [$t, (new PlanCorteService)->para($t->piezas, $config->parametrosCorte())];
     };
 
     it('una fila completa no cuesta ninguna tira adicional', function () use ($planta) {
