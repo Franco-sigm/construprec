@@ -95,6 +95,24 @@
     outline-offset: 2px;
 }
 
+/*
+ * Un botón deshabilitado tiene que verse deshabilitado.
+ *
+ * Se apaga el brillo y se hunde el relieve, además de bajar la opacidad: si sólo
+ * fuera opacidad, sobre madera clara la diferencia casi no se nota y el botón
+ * seguiría invitando a un clic que no hace nada.
+ */
+.boton:disabled {
+    opacity: 0.5;
+    filter: grayscale(0.4);
+    cursor: not-allowed;
+    box-shadow: inset 0 2px 5px rgba(70, 40, 12, 0.35);
+}
+
+.boton:disabled:hover {
+    filter: grayscale(0.4);
+}
+
 .boton--principal {
     font-size: 1.05rem;
     padding: 13px 18px;

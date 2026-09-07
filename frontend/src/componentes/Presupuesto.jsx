@@ -1,3 +1,4 @@
+import Boton from './Boton';
 import Panel from './Panel';
 
 /**
@@ -90,7 +91,18 @@ function Partida({ material, precio }) {
     );
 }
 
-export default function Presupuesto({ materiales, precios, obra, corte, proyecto }) {
+export default function Presupuesto({
+    materiales,
+    precios,
+    obra,
+    corte,
+    proyecto,
+    onEmitir,
+    emitido,
+    puedeEmitir,
+    motivoNoEmite,
+    emitiendo,
+}) {
     const total = materiales.reduce(
         (suma, m) => suma + (Number(precios[m.clave]) || 0) * m.cantidad_comprar,
         0,
@@ -136,6 +148,29 @@ export default function Presupuesto({ materiales, precios, obra, corte, proyecto
                     <strong className="cifra">${pesos.format(Math.round(total))}</strong>
                 </div>
             </div>
+
+            {emitido ? (
+                <p className="campo__nota" style={{ margin: 0 }}>
+                    Guardado como presupuesto <strong>#{emitido.id}</strong> del{' '}
+                    {emitido.fecha}, por ${pesos.format(Math.round(emitido.total))}. Queda
+                    con los precios de hoy congelados: si mañana suben, este documento no
+                    cambia.
+                </p>
+            ) : (
+                <>
+                    <Boton
+                        principal
+                        onClick={onEmitir}
+                        disabled={!puedeEmitir || emitiendo}
+                    >
+                        {emitiendo ? 'Guardando…' : 'Guardar este presupuesto'}
+                    </Boton>
+
+                    {motivoNoEmite && (
+                        <p className="campo__nota" style={{ margin: 0 }}>{motivoNoEmite}</p>
+                    )}
+                </>
+            )}
         </Panel>
     );
 }

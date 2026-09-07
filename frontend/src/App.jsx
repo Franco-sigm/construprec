@@ -4,6 +4,7 @@ import {
     actualizarProyecto,
     calcular,
     crearProyecto,
+    emitirPresupuesto,
     entrar,
     guardarToken,
     leerToken,
@@ -193,6 +194,7 @@ export default function App() {
     // Firma de lo último que se guardó. Comparar es más barato y más fiable que
     // un efecto que ponga "sin guardar" en cada tecla.
     const [firmaGuardada, setFirmaGuardada] = useState(null);
+    const [emitido, setEmitido] = useState(null);
     const [catalogo, setCatalogo] = useState(null);
     const [planta, setPlanta] = useState(PLANTA_INICIAL);
     const [config, setConfig] = useState(CONFIG_INICIAL);
@@ -278,6 +280,11 @@ export default function App() {
                 .map((id) => ({ producto_capa_id: Number(id), aplicacion: 'exterior' })),
         };
     }, [caras, config, capas]);
+
+    // Si lo que hay en pantalla es lo mismo que se guardó la última vez. Se compara
+    // una firma en vez de marcar "sin guardar" desde un efecto: un setState dentro
+    // de un efecto dispara otro render, y acá pasaría en cada tecla del formulario.
+    const estaGuardado = firmaGuardada !== null && firmaGuardada === JSON.stringify({ cuerpo, nombre });
 
     // --- recálculo, con freno ---
     // Se espera un momento antes de llamar: sin eso, escribir "2.40" dispara
@@ -369,6 +376,35 @@ export default function App() {
         }
     }, [usuario, cuerpo, nombre, planta, proyectoId]);
 
+    /**
+     * Congela el presupuesto en la base.
+     *
+     * Exige el proyecto guardado y sin cambios pendientes: un presupuesto que
+     * apunta a una geometría distinta de la que se usó para calcularlo no se
+     * puede auditar después. Y exige todos los precios, porque emitir con
+     * huecos produce un documento que parece completo y no lo está.
+     */
+    const emitir = useCallback(async () => {
+        if (!proyectoId || !estaGuardado) return;
+
+        setGuardando(true);
+
+        try {
+            const numericos = Object.fromEntries(
+                Object.entries(precios)
+                    .filter(([, v]) => v !== '' && v != null)
+                    .map(([k, v]) => [k, Number(v)]),
+            );
+
+            setEmitido(await emitirPresupuesto(proyectoId, numericos, 'CLP'));
+            setError(null);
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setGuardando(false);
+        }
+    }, [proyectoId, estaGuardado, precios]);
+
     const abrir = useCallback(async (id) => {
         try {
             const datos = desdeApi(await abrirProyecto(id));
@@ -381,6 +417,7 @@ export default function App() {
             setCapas((c) => ({ ...c, ...datos.capas }));
             setPrecios({});
             setFirmaGuardada(null);
+            setEmitido(null);
         } catch (e) {
             setError(e.message);
         }
@@ -394,7 +431,6 @@ export default function App() {
     );
 
     const faltantes = materiales.filter((m) => !precios[m.clave]).length;
-    const estaGuardado = firmaGuardada !== null && firmaGuardada === JSON.stringify({ cuerpo, nombre });
     const enMm = (valor) => (Number(valor) || 0) * { m: 1000, cm: 10, mm: 1, ft: 304.8, in: 25.4 }[planta.unidad];
 
     if (mostrandoEntrada) {
@@ -575,6 +611,21 @@ export default function App() {
                             obra={resultado.obra}
                             corte={resultado.corte}
                             proyecto={`${planta.largo} × ${planta.ancho} × ${planta.alto} ${planta.unidad}`}
+                            onEmitir={emitir}
+                            emitido={emitido}
+                            emitiendo={guardando}
+                            puedeEmitir={Boolean(proyectoId) && estaGuardado && faltantes === 0}
+                            motivoNoEmite={
+                                !usuario
+                                    ? 'Hay que entrar para poder guardar un presupuesto.'
+                                    : !proyectoId
+                                        ? 'Primero guarda el proyecto, en la pestaña Proyecto.'
+                                        : !estaGuardado
+                                            ? 'Hay cambios sin guardar: un presupuesto que apunta a otra geometría no se puede auditar después.'
+                                            : faltantes > 0
+                                                ? `Faltan ${faltantes} precios. Emitir con huecos daría un documento que parece completo y no lo está.`
+                                                : null
+                            }
                         />
                     ) : (
                     <Panel
