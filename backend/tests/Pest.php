@@ -14,8 +14,12 @@ use Tests\TestCase;
 |
 */
 
+// Los tests de Feature tocan la base, asi que cada uno arranca con el esquema
+// recien migrado. Corren contra SQLite en memoria (phpunit.xml), que es rapido
+// pero no se comporta igual que MySQL en todo: conviene una corrida contra
+// MySQL antes de desplegar.
 pest()->extend(TestCase::class)
- // ->use(RefreshDatabase::class)
+    ->use(RefreshDatabase::class)
     ->in('Feature');
 
 /*
