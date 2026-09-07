@@ -1,0 +1,203 @@
+/*
+ * Piezas del taller: paneles con escuadras metalicas, botones tallados y las
+ * filas de papel donde se listan los materiales.
+ */
+
+/* ------------------------------------------------------------- panel */
+
+/*
+ * Un panel es una tabla de madera con marco. El marco se hace con `border` de
+ * color madera oscura mas dos sombras internas que simulan el bisel: clara
+ * arriba a la izquierda, oscura abajo a la derecha, que es de donde entra la luz
+ * en toda la interfaz.
+ */
+.panel {
+    position: relative;
+    border: 3px solid var(--madera-borde);
+    border-radius: var(--radio);
+    padding: 14px;
+    box-shadow:
+        inset 0 2px 0 rgba(255, 240, 210, 0.35),
+        inset 0 -3px 6px rgba(70, 40, 12, 0.30),
+        inset 3px 0 5px rgba(70, 40, 12, 0.12),
+        0 3px 8px rgba(40, 25, 10, 0.30);
+}
+
+.panel--hueco {
+    background: rgba(70, 45, 20, 0.10);
+    box-shadow: inset 0 3px 8px rgba(50, 30, 10, 0.45);
+}
+
+/*
+ * Escuadras metalicas en las esquinas.
+ *
+ * Van como pseudo-elementos de dos envoltorios y no como cuatro divs, para no
+ * ensuciar el marcado con nodos que no significan nada. El remache es un
+ * radial-gradient centrado.
+ */
+.escuadras::before,
+.escuadras::after,
+.escuadras > .escuadra {
+    content: '';
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    background:
+        radial-gradient(circle at 50% 45%, var(--remache) 0 2px, rgba(0, 0, 0, 0.35) 2px 3.5px, transparent 3.5px),
+        linear-gradient(135deg, var(--metal-alto) 0%, var(--metal) 55%, var(--metal-bajo) 100%);
+    border-radius: 3px;
+    box-shadow: 0 1px 3px rgba(20, 12, 4, 0.55);
+    pointer-events: none;
+}
+
+.escuadras::before { top: -6px; left: -6px; }
+.escuadras::after { top: -6px; right: -6px; }
+.escuadras > .escuadra--ai { bottom: -6px; left: -6px; }
+.escuadras > .escuadra--ad { bottom: -6px; right: -6px; }
+
+/* ------------------------------------------------------------ boton */
+
+.boton {
+    display: block;
+    width: 100%;
+    border: 2px solid var(--madera-borde);
+    border-radius: var(--radio-chico);
+    padding: 11px 16px;
+    font-family: var(--fuente-titulo);
+    font-size: 1rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--tinta);
+    text-shadow: var(--grabado);
+    cursor: pointer;
+    box-shadow:
+        inset 0 2px 0 rgba(255, 240, 210, 0.45),
+        inset 0 -3px 5px rgba(70, 40, 12, 0.28),
+        0 2px 4px rgba(40, 25, 10, 0.35);
+    transition: transform 90ms ease, box-shadow 90ms ease;
+}
+
+.boton:hover {
+    filter: brightness(1.05);
+}
+
+/* Al presionar el boton se hunde: baja un pixel y pierde la sombra de abajo. */
+.boton:active {
+    transform: translateY(1px);
+    box-shadow:
+        inset 0 3px 6px rgba(70, 40, 12, 0.45),
+        0 1px 1px rgba(40, 25, 10, 0.30);
+}
+
+.boton:focus-visible {
+    outline: 3px solid var(--plano-azul);
+    outline-offset: 2px;
+}
+
+.boton--principal {
+    font-size: 1.05rem;
+    padding: 13px 18px;
+}
+
+/* ------------------------------------------------- filas de material */
+
+.fila-material {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 12px;
+    background: var(--papel);
+    border-bottom: 1px solid var(--papel-linea);
+    font-size: 0.95rem;
+}
+
+.fila-material:last-child {
+    border-bottom: 0;
+}
+
+/* Fondo alterno tenue: ayuda a seguir la fila con la vista en listas largas. */
+.fila-material:nth-child(even) {
+    background: #f1e4cd;
+}
+
+.fila-material__nombre {
+    color: var(--tinta);
+}
+
+.fila-material__cantidad {
+    font-family: var(--fuente-titulo);
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--tinta-suave);
+}
+
+/* --------------------------------------------------- campo de precio */
+
+.campo-precio {
+    width: 108px;
+    padding: 6px 8px;
+    border: 2px solid var(--madera-borde);
+    border-radius: var(--radio-chico);
+    background: #fffdf6;
+    font-family: var(--fuente-titulo);
+    font-size: 0.95rem;
+    text-align: right;
+    color: var(--tinta);
+    box-shadow: inset 0 2px 4px rgba(70, 40, 12, 0.20);
+}
+
+.campo-precio:focus {
+    outline: 3px solid var(--plano-azul);
+    outline-offset: 1px;
+}
+
+/* ----------------------------------------------------------- cartel */
+
+/* El cartel del total: madera oscura con el numero grande grabado. */
+.cartel-total {
+    text-align: center;
+    padding: 10px 14px 14px;
+}
+
+.cartel-total__rotulo {
+    font-family: var(--fuente-titulo);
+    font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid rgba(70, 40, 12, 0.45);
+    padding-bottom: 4px;
+    text-shadow: var(--grabado);
+}
+
+.cartel-total__monto {
+    font-family: var(--fuente-titulo);
+    font-size: clamp(1.6rem, 4vw, 2.6rem);
+    font-weight: 600;
+    margin-top: 6px;
+    text-shadow: var(--grabado);
+}
+
+/* ------------------------------------------------------ accesibilidad */
+
+/*
+ * Texto que solo leen los lectores de pantalla.
+ *
+ * No se usa `display: none` ni `visibility: hidden` porque ambos lo ocultan
+ * tambien del lector, que es justo lo contrario de lo que se busca: recortarlo a
+ * un pixel transparente lo saca de la vista pero lo deja en el arbol de
+ * accesibilidad.
+ */
+.visualmente-oculto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}

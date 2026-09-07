@@ -1,0 +1,139 @@
+/*
+ * Tema "taller de carpinteria": madera, metal y plano azul.
+ *
+ * Las texturas son gradientes CSS y no imagenes, por tres razones: pesan cero
+ * bytes de red, escalan sin pixelarse en cualquier densidad de pantalla, y se
+ * recoloran cambiando una variable en vez de reexportar archivos.
+ */
+
+:root {
+    /* --- madera ---
+       Tres tonos: el claro para paneles y botones, el medio para molduras y el
+       oscuro para la barra superior y los bordes en sombra. */
+    --madera-clara: #d7ab72;
+    --madera-clara-alta: #e6c193;
+    --madera-media: #b8894b;
+    --madera-oscura: #8a6134;
+    --madera-borde: #6b4823;
+    --madera-veta: rgba(94, 58, 22, 0.14);
+
+    /* --- metal de las escuadras --- */
+    --metal-alto: #7d848d;
+    --metal: #565c65;
+    --metal-bajo: #383d44;
+    --remache: #9aa1aa;
+
+    /* --- plano y papel --- */
+    --plano-fondo: #f4f1e7;
+    --plano-linea: rgba(120, 140, 160, 0.16);
+    --plano-linea-fuerte: rgba(120, 140, 160, 0.28);
+    --plano-azul: #4a90c2;
+    --plano-azul-suave: #bcd8ec;
+
+    /* --- papel de las filas de material --- */
+    --papel: #f6ecd8;
+    --papel-linea: rgba(120, 85, 40, 0.22);
+
+    /* --- tinta --- */
+    --tinta: #33200d;
+    --tinta-suave: #6b4a28;
+    --tinta-clara: #f6ead4;
+
+    /* Relieve: el texto grabado sobre madera lleva una luz arriba y una sombra
+       abajo, que es como se ve una talla real. */
+    --grabado: 0 1px 0 rgba(255, 240, 210, 0.45), 0 -1px 0 rgba(60, 35, 10, 0.35);
+
+    --radio: 6px;
+    --radio-chico: 4px;
+
+    --fuente-titulo: 'Oswald', 'Arial Narrow', system-ui, sans-serif;
+    --fuente-texto: 'Roboto Condensed', 'Arial Narrow', system-ui, sans-serif;
+}
+
+/* ---------------------------------------------------------------- texturas */
+
+/*
+ * Veta de madera.
+ *
+ * Se apilan cuatro capas: dos rejillas de lineas finas a distinto paso, que dan
+ * el rayado irregular; una banda ancha que insinua los anillos; y el degradado
+ * de fondo que da el volumen. Los pasos son numeros primos entre si (3, 7, 23)
+ * para que el patron no se repita a la vista.
+ */
+.veta {
+    background-color: var(--madera-clara);
+    background-image:
+        repeating-linear-gradient(90deg, var(--madera-veta) 0 1px, transparent 1px 3px),
+        repeating-linear-gradient(90deg, rgba(94, 58, 22, 0.07) 0 2px, transparent 2px 7px),
+        repeating-linear-gradient(90deg, rgba(255, 235, 200, 0.10) 0 3px, transparent 3px 23px),
+        linear-gradient(180deg, var(--madera-clara-alta) 0%, var(--madera-clara) 45%, var(--madera-media) 100%);
+}
+
+/* La misma veta pero corriendo en vertical, para molduras de los costados. */
+.veta-vertical {
+    background-color: var(--madera-clara);
+    background-image:
+        repeating-linear-gradient(0deg, var(--madera-veta) 0 1px, transparent 1px 3px),
+        repeating-linear-gradient(0deg, rgba(94, 58, 22, 0.07) 0 2px, transparent 2px 7px),
+        linear-gradient(90deg, var(--madera-clara-alta) 0%, var(--madera-clara) 45%, var(--madera-media) 100%);
+}
+
+.veta-oscura {
+    background-color: var(--madera-oscura);
+    background-image:
+        repeating-linear-gradient(90deg, rgba(40, 22, 6, 0.20) 0 1px, transparent 1px 4px),
+        repeating-linear-gradient(90deg, rgba(40, 22, 6, 0.10) 0 3px, transparent 3px 11px),
+        repeating-linear-gradient(90deg, rgba(230, 190, 140, 0.08) 0 2px, transparent 2px 29px),
+        linear-gradient(180deg, #9c7040 0%, var(--madera-oscura) 60%, #6f4c26 100%);
+}
+
+/*
+ * Fondo de plano: cuadricula fina con una linea mas marcada cada cinco, como el
+ * papel milimetrado sobre el que se dibuja a mano.
+ */
+.plano {
+    background-color: var(--plano-fondo);
+    background-image:
+        linear-gradient(var(--plano-linea-fuerte) 1px, transparent 1px),
+        linear-gradient(90deg, var(--plano-linea-fuerte) 1px, transparent 1px),
+        linear-gradient(var(--plano-linea) 1px, transparent 1px),
+        linear-gradient(90deg, var(--plano-linea) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+}
+
+/* ------------------------------------------------------------ tipografia */
+
+.titulo {
+    font-family: var(--fuente-titulo);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tinta);
+    text-shadow: var(--grabado);
+}
+
+/* -------------------------------------------------------------- base */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: var(--fuente-texto);
+    color: var(--tinta);
+    -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Respeta a quien pidio menos movimiento en su sistema. No es un extra: para
+ * algunas personas las animaciones producen mareo real.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
