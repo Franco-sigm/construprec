@@ -24,6 +24,10 @@ export default function CampoMedida({
     nota,
     paso = 'any',
     unidades = UNIDADES,
+    // Cuando dos campos comparten unidad —el ancho y el alto de un vano— basta
+    // un selector para los dos. El segundo no sólo sobra: en una columna angosta
+    // empuja el campo fuera del panel.
+    mostrarUnidad = true,
 }) {
     return (
         <label className="campo">
@@ -40,16 +44,18 @@ export default function CampoMedida({
                     onChange={(e) => onValor(e.target.value)}
                 />
 
-                <select
-                    className="selector selector--unidad"
-                    value={unidad}
-                    onChange={(e) => onUnidad(e.target.value)}
-                    aria-label={`Unidad de ${rotulo.toLowerCase()}`}
-                >
-                    {unidades.map((u) => (
-                        <option key={u.valor} value={u.valor}>{u.rotulo}</option>
-                    ))}
-                </select>
+                {mostrarUnidad && (
+                    <select
+                        className="selector selector--unidad"
+                        value={unidad}
+                        onChange={(e) => onUnidad(e.target.value)}
+                        aria-label={`Unidad de ${rotulo.toLowerCase()}`}
+                    >
+                        {unidades.map((u) => (
+                            <option key={u.valor} value={u.valor}>{u.rotulo}</option>
+                        ))}
+                    </select>
+                )}
             </span>
 
             {nota && <span className="campo__nota">{nota}</span>}

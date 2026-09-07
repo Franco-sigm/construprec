@@ -15,9 +15,20 @@ function escuadria2x3(): Escuadria
     return Escuadria::where('nominal', '2x3')->where('estado', 'seco_cepillado')->firstOrFail();
 }
 
+/**
+ * Cuerpo de referencia: planta de 6 x 4, una puerta y dos ventanas que suman
+ * 4,0 m2 de vanos.
+ *
+ * `caras` se reemplaza entero y no se fusiona. array_replace_recursive mezcla
+ * arreglo con arreglo por índice, así que pasar una cara con un vano dejaba
+ * colgando los vanos de la cara original y la superficie no cuadraba.
+ */
 function cuerpo(array $sobrescribir = []): array
 {
-    return array_replace_recursive([
+    $caras = $sobrescribir['caras'] ?? null;
+    unset($sobrescribir['caras']);
+
+    $base = array_replace_recursive([
         'caras' => [
             ['nombre' => 'Cara 1', 'largo' => 6, 'alto' => 2.4, 'unidad' => 'm', 'vanos' => [
                 ['tipo' => 'puerta', 'ancho' => 0.9, 'alto' => 2.0],
@@ -38,6 +49,12 @@ function cuerpo(array $sobrescribir = []): array
             'merma_pct' => 5,
         ],
     ], $sobrescribir);
+
+    if ($caras !== null) {
+        $base['caras'] = $caras;
+    }
+
+    return $base;
 }
 
 describe('el catálogo', function () {
@@ -168,5 +185,59 @@ describe('entradas que no cierran', function () {
                 ['tipo' => 'puerta', 'ancho' => 3, 'alto' => 2],
             ]],
         ]]))->assertStatus(422);
+    });
+});
+
+describe('encaje de los vanos con la trama', function () {
+    it('devuelve los anchos que calzan con los pies derechos', function () {
+        $r = $this->postJson('/api/calculos', cuerpo());
+
+        // Con 40 cm de separación y un 2x3 de 41 mm: 400k - 123.
+        expect($r->json('tabiqueria.anchos_modulares_mm'))->toContain(677, 1077, 1477)
+            ->and($r->json('tabiqueria.separacion_mm'))->toBe(400)
+            ->and($r->json('tabiqueria.espesor_pieza_mm'))->toBe(41);
+    });
+
+    it('avisa qué vano no calza y cuál sería el ancho más cercano', function () {
+        $r = $this->postJson('/api/calculos', cuerpo());
+        $puerta = $r->json('caras.0.vanos.0');
+
+        // Una puerta de 900 ocupa 2,56 tramos: sobra medio tramo al lado.
+        expect($puerta['calza_con_la_trama'])->toBeFalse()
+            ->and($puerta['ancho_sugerido_mm'])->toBe(1077)
+            ->and($puerta['tramos_que_ocupa'])->toBeGreaterThan(2.5)
+            ->and($puerta['tramos_que_ocupa'])->toBeLessThan(2.6);
+    });
+
+    it('confirma el que sí calza', function () {
+        $r = $this->postJson('/api/calculos', cuerpo(['caras' => [
+            ['largo' => 6, 'alto' => 2.4, 'unidad' => 'm', 'vanos' => [
+                ['tipo' => 'ventana', 'ancho' => 1.077, 'alto' => 1.0, 'antepecho' => 0.9],
+            ]],
+        ]]));
+
+        $vano = $r->json('caras.0.vanos.0');
+
+        expect($vano['calza_con_la_trama'])->toBeTrue()
+            ->and((float) $vano['tramos_que_ocupa'])->toBe(3.0);
+    });
+
+    it('los anchos cambian con la separación y con la escuadría', function () {
+        $a60 = $this->postJson('/api/calculos', cuerpo(['tabiqueria' => ['separacion' => 0.6]]));
+
+        // 600k - 123: 477, 1077, 1677...
+        expect($a60->json('tabiqueria.anchos_modulares_mm'))->toContain(477, 1077, 1677);
+    });
+
+    it('devuelve la cantidad de cada vano, para poder dibujarlos', function () {
+        $r = $this->postJson('/api/calculos', cuerpo(['caras' => [
+            ['largo' => 8, 'alto' => 2.4, 'unidad' => 'm', 'vanos' => [
+                ['tipo' => 'ventana', 'ancho' => 1.0, 'alto' => 1.0, 'antepecho' => 0.9, 'cantidad' => 3],
+            ]],
+        ]]));
+
+        expect($r->json('caras.0.vanos.0.cantidad'))->toBe(3)
+            // Tres ventanas de 1 m2 descuentan 3 m2 de los 19,2 del muro.
+            ->and((float) $r->json('obra.superficie_vanos_m2'))->toBe(3.0);
     });
 });

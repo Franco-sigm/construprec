@@ -87,6 +87,89 @@ final readonly class ConfiguracionTabique
         return $altoCara->menos($this->espesorSoleras());
     }
 
+    /**
+     * Anchos de vano que dejan las jambas justo sobre la trama de pies derechos.
+     *
+     * Un vano enmarcado ocupa, a lo largo del muro, esta secuencia de piezas:
+     *
+     *     jamba | apoyo | ---- vano ---- | apoyo | jamba
+     *
+     * De centro a centro de las dos jambas hay el ancho del vano mas tres
+     * espesores de pieza. Para que ambas jambas caigan sobre la trama, esa
+     * distancia tiene que ser multiplo de la separacion, de donde sale
+     * `ancho = k x separacion - 3 x espesor`.
+     *
+     * Calzar importa por dos razones practicas. La primera es que si no calza
+     * queda un tramo residual angosto al lado del vano, donde el revestimiento no
+     * encuentra apoyo en su canto y hay que agregar una pieza a medida. La
+     * segunda es que los pies derechos cortos sobre el dintel y bajo el antepecho
+     * siguen la misma trama que el resto del muro, asi que una plancha de OSB o
+     * de yeso-carton encuentra clavador cada 40 cm de punta a punta y no hay que
+     * cortarla en un lugar caprichoso.
+     *
+     * Son sugerencias y no una imposicion: una puerta viene del fabricante con su
+     * medida y no se puede estirar para que calce. Lo que si se puede es correr el
+     * vano o ajustar la separacion.
+     *
+     * @return list<Medida>
+     */
+    public function anchosModulares(int $maximoTramos = 10): array
+    {
+        $descuento = $this->escuadriaAncho->por(3);
+        $anchos = [];
+
+        for ($k = 1; $k <= $maximoTramos; $k++) {
+            $ancho = $this->separacion->por($k)->menos($descuento);
+
+            // Con separacion chica los primeros tramos dan anchos que no son un
+            // vano de verdad, o directamente cero.
+            if ($ancho->mm >= 300) {
+                $anchos[] = $ancho;
+            }
+        }
+
+        return $anchos;
+    }
+
+    /**
+     * Cuantos tramos de la trama consume un vano de este ancho.
+     *
+     * Entero exacto si calza; con decimales si no. La parte fraccionaria es
+     * justamente lo que va a quedar como tramo residual.
+     */
+    public function tramosQueOcupa(Medida $anchoVano): float
+    {
+        return round(
+            $anchoVano->mas($this->escuadriaAncho->por(3))->dividirPor($this->separacion),
+            4,
+        );
+    }
+
+    /** El ancho modular mas cercano al que se escribio. Nulo si no hay ninguno. */
+    public function anchoModularMasCercano(Medida $anchoVano): ?Medida
+    {
+        $candidatos = $this->anchosModulares();
+
+        if ($candidatos === []) {
+            return null;
+        }
+
+        usort(
+            $candidatos,
+            fn (Medida $a, Medida $b) => abs($a->mm - $anchoVano->mm) <=> abs($b->mm - $anchoVano->mm),
+        );
+
+        return $candidatos[0];
+    }
+
+    /** Si el vano cae exacto sobre la trama, con una tolerancia de un milimetro. */
+    public function calzaConLaTrama(Medida $anchoVano): bool
+    {
+        $cercano = $this->anchoModularMasCercano($anchoVano);
+
+        return $cercano !== null && abs($cercano->mm - $anchoVano->mm) <= 1;
+    }
+
     /** El dintel va de canto, asi que su alto es la profundidad del tabique salvo que se elija otra escuadria. */
     public function altoDintel(): Medida
     {

@@ -40,6 +40,42 @@ function murosDe(largo, ancho) {
     ];
 }
 
+/**
+ * Ubica los vanos a lo largo del muro, apoyados en la trama.
+ *
+ * La posición no es un dato del presupuesto —dos ventanas de 1,20 cuestan lo
+ * mismo estén donde estén— así que se reparten con espacios parejos y se corre
+ * cada una al pie derecho más cercano. El dibujo es esquemático en el DÓNDE,
+ * pero exacto en el CUÁNTO: si el vano no calza con la trama, se ve el tramo
+ * residual angosto que queda al lado, que es justamente lo que hay que notar.
+ */
+function ubicarVanos(vanos, largoMuro, separacion, espesor) {
+    const piezas = vanos.flatMap((v) => Array.from({ length: v.cantidad ?? 1 }, () => v));
+
+    if (piezas.length === 0) return [];
+
+    // Ancho que consume cada vano con su marco completo.
+    const conMarco = piezas.map((v) => v.ancho_mm + 3 * espesor);
+    const ocupado = conMarco.reduce((a, b) => a + b, 0);
+    const holgura = Math.max(0, largoMuro - ocupado) / (piezas.length + 1);
+
+    let cursor = holgura;
+
+    return piezas.map((vano, i) => {
+        // Se corre el arranque al pie derecho más cercano: es lo que hace un
+        // carpintero, y hace visible si el vano calza o deja un trozo suelto.
+        const inicio = Math.round(cursor / separacion) * separacion;
+
+        cursor += conMarco[i] + holgura;
+
+        return {
+            ...vano,
+            desde: Math.max(0, Math.min(inicio, largoMuro - conMarco[i])),
+            hasta: Math.max(0, Math.min(inicio + conMarco[i], largoMuro)),
+        };
+    });
+}
+
 function posicionesDePiesDerechos(largoMuro, separacion) {
     const posiciones = [];
     for (let d = 0; d < largoMuro; d += separacion) {
@@ -49,9 +85,10 @@ function posicionesDePiesDerechos(largoMuro, separacion) {
     return posiciones;
 }
 
-function Muro({ muro, alto, separacion, trazo, tenue }) {
+function Muro({ muro, alto, separacion, trazo, espesor, vanos = [], tenue }) {
     const [x0, y0] = muro.desde;
     const [x1, y1] = muro.hasta;
+    const ubicados = ubicarVanos(vanos, muro.largo, separacion, espesor);
 
     // Vector unitario a lo largo del muro, para poder recorrerlo en milímetros
     // sin preocuparse de en qué eje va.
@@ -78,21 +115,53 @@ function Muro({ muro, alto, separacion, trazo, tenue }) {
                 fill="none"
             />
 
-            {/* Pies derechos, uno cada `separacion` más el de cierre */}
-            {posicionesDePiesDerechos(muro.largo, separacion).map((d) => {
-                const px = x0 + dx * d;
-                const py = y0 + dy * d;
+            {/* Pies derechos, uno cada `separacion` más el de cierre. Los que caen
+                dentro de un vano no existen: ahí va el hueco. */}
+            {posicionesDePiesDerechos(muro.largo, separacion)
+                .filter((d) => !ubicados.some((v) => d > v.desde + 1 && d < v.hasta - 1))
+                .map((d) => {
+                    const px = x0 + dx * d;
+                    const py = y0 + dy * d;
+                    return (
+                        <line
+                            key={d}
+                            x1={proyectar(px, py, 0).x}
+                            y1={proyectar(px, py, 0).y}
+                            x2={proyectar(px, py, alto).x}
+                            y2={proyectar(px, py, alto).y}
+                            stroke={tenue ? '#b9884a' : '#c99a5c'}
+                            strokeWidth={trazo}
+                            strokeLinecap="round"
+                        />
+                    );
+                })}
+
+            {/* Marco de cada vano: jambas a los lados, dintel arriba y alféizar
+                abajo en las ventanas. */}
+            {ubicados.map((vano, i) => {
+                const punto3 = (d, z) => punto(x0 + dx * d, y0 + dy * d, z);
+                const arriba = vano.antepecho_mm + vano.alto_mm;
+
                 return (
-                    <line
-                        key={d}
-                        x1={proyectar(px, py, 0).x}
-                        y1={proyectar(px, py, 0).y}
-                        x2={proyectar(px, py, alto).x}
-                        y2={proyectar(px, py, alto).y}
-                        stroke={tenue ? "#b9884a" : "#c99a5c"}
-                        strokeWidth={trazo}
-                        strokeLinecap="round"
-                    />
+                    <g key={i} stroke="#8a6134" strokeWidth={trazo * 1.2} fill="none" strokeLinecap="round">
+                        <polyline points={`${punto3(vano.desde, 0)} ${punto3(vano.desde, alto)}`} />
+                        <polyline points={`${punto3(vano.hasta, 0)} ${punto3(vano.hasta, alto)}`} />
+                        <polyline points={`${punto3(vano.desde, arriba)} ${punto3(vano.hasta, arriba)}`} />
+                        {vano.antepecho_mm > 0 && (
+                            <polyline points={`${punto3(vano.desde, vano.antepecho_mm)} ${punto3(vano.hasta, vano.antepecho_mm)}`} />
+                        )}
+                        {/* El hueco, para que se lea como abertura y no como reja. */}
+                        <polygon
+                            points={[
+                                punto3(vano.desde, vano.antepecho_mm),
+                                punto3(vano.hasta, vano.antepecho_mm),
+                                punto3(vano.hasta, arriba),
+                                punto3(vano.desde, arriba),
+                            ].join(' ')}
+                            fill="rgba(74, 144, 194, 0.16)"
+                            stroke="none"
+                        />
+                    </g>
                 );
             })}
         </g>
@@ -135,6 +204,8 @@ export default function PlanoIsometrico({
     anchoMm = 4000,
     altoMm = 2400,
     separacionMm = 400,
+    espesorPiezaMm = 41,
+    vanosPorCara = {},
 }) {
     const muros = murosDe(largoMm, anchoMm);
 
@@ -213,11 +284,20 @@ export default function PlanoIsometrico({
             ))}
 
             {/* Muros de atrás primero, para que los de adelante los tapen */}
-            {muros.slice(0, 2).map((muro) => (
-                <Muro key={muro.clave} muro={muro} alto={altoMm} separacion={separacionMm} trazo={trazo} tenue />
-            ))}
-            {muros.slice(2).map((muro) => (
-                <Muro key={muro.clave} muro={muro} alto={altoMm} separacion={separacionMm} trazo={trazo} />
+            {muros.map((muro, i) => (
+                <Muro
+                    key={muro.clave}
+                    muro={muro}
+                    alto={altoMm}
+                    separacion={separacionMm}
+                    trazo={trazo}
+                    espesor={espesorPiezaMm}
+                    vanos={vanosPorCara[i] ?? []}
+                    // Los dos de atrás van atenuados y se pintan primero, para que
+                    // los de adelante los tapen: es lo único que da volumen sin
+                    // calcular oclusión de verdad.
+                    tenue={i < 2}
+                />
             ))}
 
             <Cota desde={[0, anchoMm, 0]} hasta={[largoMm, anchoMm, 0]} texto={metros(largoMm)} trazo={trazo} desplazamiento={[0, trazo * 11]} />

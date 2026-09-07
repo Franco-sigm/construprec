@@ -266,3 +266,106 @@
     color: #6d2c1d;
     font-size: 0.9rem;
 }
+
+/* ------------------------------------------------------------- vanos */
+
+.cara {
+    border: 2px solid var(--madera-borde);
+    border-radius: var(--radio-chico);
+    background: rgba(70, 45, 20, 0.10);
+    box-shadow: inset 0 2px 6px rgba(50, 30, 10, 0.30);
+    padding: 10px;
+}
+
+.cara__titulo {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 8px;
+    font-family: var(--fuente-titulo);
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tinta);
+    text-shadow: var(--grabado);
+}
+
+.cara__medida {
+    font-size: 0.82rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--tinta-suave);
+    text-shadow: none;
+}
+
+.vano {
+    background: var(--papel);
+    border: 1px solid var(--papel-linea);
+    border-radius: var(--radio-chico);
+    padding: 9px;
+    margin-bottom: 8px;
+}
+
+.vano__fila {
+    display: grid;
+    /*
+     * minmax(0, 1fr) y no 1fr: por defecto una columna de grid no baja del ancho
+     * mínimo de su contenido, así que la columna con el selector de unidad
+     * empujaba a la de al lado fuera del panel.
+     */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.vano__pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/*
+ * Aviso de encaje con la trama.
+ *
+ * Lleva icono y texto además del color, porque un aviso que sólo se distingue
+ * por ser verde o ámbar no se distingue para quien no separa esos dos matices.
+ */
+.encaje {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.79rem;
+    line-height: 1.3;
+}
+
+.encaje--calza { color: #3d6b32; }
+.encaje--no-calza { color: #8a5a12; }
+
+.boton-chico {
+    padding: 4px 9px;
+    border: 2px solid var(--madera-borde);
+    border-radius: 3px;
+    background: var(--madera-clara);
+    font-family: var(--fuente-titulo);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tinta);
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: inset 0 1px 0 rgba(255, 240, 210, 0.5), 0 1px 2px rgba(40, 25, 10, 0.3);
+}
+
+.boton-chico:hover { filter: brightness(1.06); }
+.boton-chico:active { transform: translateY(1px); }
+.boton-chico:focus-visible { outline: 3px solid var(--plano-azul); outline-offset: 2px; }
+
+.boton-chico--quitar {
+    background: #e5d3c8;
+    border-color: #8c5b4a;
+    color: #6d2c1d;
+}

@@ -59,9 +59,10 @@ class CalculoController extends Controller
         );
 
         [$capas, $claves] = $this->capas($datos['capas'] ?? []);
+        $caras = $this->caras($datos['caras']);
 
         $calculo = $this->calculadora->calcular(
-            caras: $this->caras($datos['caras']),
+            caras: $caras,
             config: $config,
             capas: $capas,
             nombreMadera: sprintf('Pino %s %.2f m', $escuadria->descripcion(), $largoComercial / 1000),
@@ -91,7 +92,56 @@ class CalculoController extends Controller
 
             'corte' => $calculo->planCorte->detalle(),
             'despiece' => $calculo->despiece->detalle(),
+
+            'tabiqueria' => [
+                'separacion_mm' => $config->separacion->mm,
+                'espesor_pieza_mm' => $config->escuadriaAncho->mm,
+                'largo_comercial_mm' => $config->largoComercial->mm,
+                // Anchos de vano que dejan las jambas sobre la trama de pies
+                // derechos. Se mandan para que la interfaz pueda proponerlos sin
+                // reimplementar la fórmula y arriesgarse a que se desincronicen.
+                'anchos_modulares_mm' => array_map(
+                    fn (Medida $m) => $m->mm,
+                    $config->anchosModulares(),
+                ),
+            ],
+
+            'caras' => $this->diagnosticoDeCaras($caras, $config),
         ]);
+    }
+
+    /**
+     * Cómo se lleva cada vano con la trama de pies derechos.
+     *
+     * Se calcula acá y no en la interfaz para que la fórmula viva en un solo
+     * lugar: si mañana cambia el modo de enmarcar un vano, no puede quedar una
+     * copia en JavaScript diciendo otra cosa.
+     *
+     * @param  list<Cara>  $caras
+     * @return list<array<string, mixed>>
+     */
+    private function diagnosticoDeCaras(array $caras, ConfiguracionTabique $config): array
+    {
+        return array_map(fn (Cara $cara) => [
+            'nombre' => $cara->nombre,
+            'largo_mm' => $cara->largo->mm,
+            'alto_mm' => $cara->alto->mm,
+            'superficie_m2' => $cara->largo->porM2($cara->alto),
+            'vanos' => array_map(function (Vano $vano) use ($config) {
+                $cercano = $config->anchoModularMasCercano($vano->ancho);
+
+                return [
+                    'tipo' => $vano->tipo->value,
+                    'ancho_mm' => $vano->ancho->mm,
+                    'alto_mm' => $vano->alto->mm,
+                    'antepecho_mm' => $vano->antepecho->mm,
+                    'cantidad' => $vano->cantidad,
+                    'calza_con_la_trama' => $config->calzaConLaTrama($vano->ancho),
+                    'tramos_que_ocupa' => $config->tramosQueOcupa($vano->ancho),
+                    'ancho_sugerido_mm' => $cercano?->mm,
+                ];
+            }, $cara->vanos),
+        ], $caras);
     }
 
     /**

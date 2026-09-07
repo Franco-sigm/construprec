@@ -4,6 +4,7 @@ import BarraHerramientas from './componentes/BarraHerramientas';
 import BarraSuperior from './componentes/BarraSuperior';
 import Boton from './componentes/Boton';
 import CampoMedida from './componentes/CampoMedida';
+import EditorVanos from './componentes/EditorVanos';
 import ListaMateriales from './componentes/ListaMateriales';
 import Panel from './componentes/Panel';
 import PanelConfiguracion from './componentes/PanelConfiguracion';
@@ -39,27 +40,53 @@ const CONFIG_INICIAL = {
     mermaPct: '5',
 };
 
-/**
- * Vanos de arranque, para que la pantalla muestre algo real desde el principio.
- * El editor de vanos por cara es el paso siguiente.
- */
-const VANOS = [
-    { cara: 0, tipo: 'puerta', ancho: 0.9, alto: 2.0 },
-    { cara: 0, tipo: 'ventana', ancho: 1.2, alto: 1.0, antepecho: 0.9 },
-    { cara: 1, tipo: 'ventana', ancho: 1.0, alto: 1.0, antepecho: 0.9 },
-];
+/** Vanos de arranque, para que la pantalla muestre algo real desde el principio. */
+const VANOS_INICIALES = {
+    0: [
+        { tipo: 'puerta', ancho: '0.9', alto: '2', antepecho: '0', cantidad: 1, unidad: 'm' },
+        { tipo: 'ventana', ancho: '1.2', alto: '1', antepecho: '0.9', cantidad: 1, unidad: 'm' },
+    ],
+    1: [
+        { tipo: 'ventana', ancho: '1', alto: '1', antepecho: '0.9', cantidad: 1, unidad: 'm' },
+    ],
+};
 
-/** Las cuatro caras que salen de una planta rectangular. */
-function carasDe(planta) {
+/**
+ * Las cuatro caras que salen de una planta rectangular.
+ *
+ * Los vanos viven aparte y se pegan por índice de cara, así que cambiar el largo
+ * de la planta no borra las ventanas que ya se habían ingresado.
+ */
+function carasDe(planta, vanos) {
     const lados = [planta.largo, planta.ancho, planta.largo, planta.ancho];
 
     return lados.map((largo, i) => ({
         nombre: `Cara ${i + 1}`,
-        largo: Number(largo) || 0,
-        alto: Number(planta.alto) || 0,
+        largo: largo,
+        alto: planta.alto,
         unidad: planta.unidad,
-        vanos: VANOS.filter((v) => v.cara === i).map(({ cara: _cara, ...vano }) => vano),
+        vanos: vanos[i] ?? [],
     }));
+}
+
+/** Convierte al formato que espera la API: números, no cadenas del formulario. */
+function paraLaApi(cara) {
+    return {
+        nombre: cara.nombre,
+        largo: Number(cara.largo) || 0,
+        alto: Number(cara.alto) || 0,
+        unidad: cara.unidad,
+        vanos: cara.vanos
+            .filter((v) => Number(v.ancho) > 0 && Number(v.alto) > 0)
+            .map((v) => ({
+                tipo: v.tipo,
+                ancho: Number(v.ancho),
+                alto: Number(v.alto),
+                antepecho: v.tipo === 'puerta' ? 0 : Number(v.antepecho) || 0,
+                cantidad: Number(v.cantidad) || 1,
+                unidad: v.unidad,
+            })),
+    };
 }
 
 export default function App() {
@@ -68,6 +95,7 @@ export default function App() {
     const [planta, setPlanta] = useState(PLANTA_INICIAL);
     const [config, setConfig] = useState(CONFIG_INICIAL);
     const [capas, setCapas] = useState({});
+    const [vanos, setVanos] = useState(VANOS_INICIALES);
     const [resultado, setResultado] = useState(null);
     const [precios, setPrecios] = useState({});
     const [error, setError] = useState(null);
@@ -109,11 +137,13 @@ export default function App() {
             .catch((e) => setError(e.message));
     }, []);
 
+    const caras = useMemo(() => carasDe(planta, vanos), [planta, vanos]);
+
     const cuerpo = useMemo(() => {
         if (!config.escuadriaId) return null;
 
         return {
-            caras: carasDe(planta),
+            caras: caras.map(paraLaApi),
             tabiqueria: {
                 escuadria_id: Number(config.escuadriaId),
                 largo_comercial_mm: Number(config.largoComercialMm),
@@ -127,7 +157,7 @@ export default function App() {
                 .filter(Boolean)
                 .map((id) => ({ producto_capa_id: Number(id), aplicacion: 'exterior' })),
         };
-    }, [planta, config, capas]);
+    }, [caras, config, capas]);
 
     // --- recálculo, con freno ---
     // Se espera un momento antes de llamar: sin eso, escribir "2.40" dispara
@@ -237,9 +267,23 @@ export default function App() {
                             ))}
 
                             <p className="campo__nota" style={{ margin: 0 }}>
-                                De estas tres medidas salen las cuatro caras. Cada una queda
-                                editable por separado más adelante.
+                                De estas tres medidas salen las cuatro caras.
                             </p>
+                        </Panel>
+                    )}
+
+                    {seccion === 'proyecto' && (
+                        <Panel style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <h2 className="titulo" style={{ margin: 0, fontSize: '1.05rem' }}>
+                                Puertas y ventanas
+                            </h2>
+
+                            <EditorVanos
+                                caras={caras}
+                                vanos={vanos}
+                                diagnostico={resultado?.caras}
+                                onVanos={(i, lista) => setVanos((v) => ({ ...v, [i]: lista }))}
+                            />
                         </Panel>
                     )}
 
@@ -290,6 +334,12 @@ export default function App() {
                                 (Number(config.separacion) || 0.4)
                                 * { m: 1000, cm: 10, mm: 1, ft: 304.8, in: 25.4 }[config.separacionUnidad]
                             }
+                            espesorPiezaMm={resultado?.tabiqueria?.espesor_pieza_mm ?? 41}
+                            // Los vanos ya convertidos a milímetros vienen del
+                            // backend, que es quien sabe convertir unidades.
+                            vanosPorCara={Object.fromEntries(
+                                (resultado?.caras ?? []).map((c, i) => [i, c.vanos]),
+                            )}
                         />
                     </Panel>
 
