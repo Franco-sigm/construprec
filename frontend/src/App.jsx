@@ -24,10 +24,12 @@ const PROYECTO = {
 const MATERIALES = [
     { clave: 'madera', nombre: 'Pino 2x3 seco cepillado 3,20 m', unidad_venta: 'tiras', cantidad_comprar: 76 },
     { clave: 'capa_1', nombre: 'OSB estructural 11,1 mm', unidad_venta: 'planchas', cantidad_comprar: 16 },
-    { clave: 'capa_2', nombre: 'Membrana hidrófuga', unidad_venta: 'rollos', cantidad_comprar: 1 },
-    { clave: 'capa_3', nombre: 'Siding fibrocemento', unidad_venta: 'planchas', cantidad_comprar: 16 },
+    { clave: 'capa_2', nombre: 'Membrana hidrófuga 1,5 x 50 m', unidad_venta: 'rollos', cantidad_comprar: 1 },
+    // El siding va traslapado: cada tabla de 190 mm deja 160 a la vista, así que
+    // rinde 0,5856 m2 y no los 2,98 de una plancha. Son 83 tablas, no 16.
+    { clave: 'capa_3', nombre: 'Siding fibrocemento 190 x 3660 mm', unidad_venta: 'tablas', cantidad_comprar: 83 },
     { clave: 'capa_4', nombre: 'Lana de vidrio 50 mm', unidad_venta: 'rollos', cantidad_comprar: 4 },
-    { clave: 'capa_5', nombre: 'Yeso-cartón 8 mm', unidad_venta: 'planchas', cantidad_comprar: 17 },
+    { clave: 'capa_5', nombre: 'Terciado ranurado clásico 12 mm', unidad_venta: 'planchas', cantidad_comprar: 16 },
 ];
 
 const ETAPAS = [

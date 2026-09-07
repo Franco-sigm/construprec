@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             MonedaSeeder::class,
             EscuadriaSeeder::class,
+            ProductoCapaSeeder::class,
         ]);
     }
 }
