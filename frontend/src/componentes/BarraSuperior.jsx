@@ -17,7 +17,7 @@ function formatear(iso) {
     });
 }
 
-export default function BarraSuperior({ titulo, fecha, onVolver }) {
+export default function BarraSuperior({ titulo, fecha, onVolver, usuario, onEntrar, onSalir }) {
     return (
         <header
             className="veta-oscura"
@@ -35,6 +35,18 @@ export default function BarraSuperior({ titulo, fecha, onVolver }) {
                 ‹ {titulo}
             </Boton>
 
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {usuario ? (
+                    <>
+                        <span className="titulo" style={{ fontSize: '0.8rem', opacity: 0.9 }}>
+                            {usuario.nombre}
+                        </span>
+                        <Boton onClick={onSalir} style={{ width: 'auto' }}>Salir</Boton>
+                    </>
+                ) : (
+                    <Boton onClick={onEntrar} style={{ width: 'auto' }}>Entrar</Boton>
+                )}
+
             <time
                 className="titulo"
                 dateTime={fecha}
@@ -49,6 +61,7 @@ export default function BarraSuperior({ titulo, fecha, onVolver }) {
             >
                 {formatear(fecha)}
             </time>
+            </span>
         </header>
     );
 }

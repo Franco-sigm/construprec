@@ -1,9 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { calcular, obtenerCatalogo } from './api';
+import {
+    abrirProyecto,
+    actualizarProyecto,
+    calcular,
+    crearProyecto,
+    entrar,
+    guardarToken,
+    leerToken,
+    listarProyectos,
+    obtenerCatalogo,
+    quienSoy,
+    salir,
+} from './api';
 import BarraHerramientas from './componentes/BarraHerramientas';
 import BarraSuperior from './componentes/BarraSuperior';
 import Boton from './componentes/Boton';
 import CampoMedida from './componentes/CampoMedida';
+import Entrada from './componentes/Entrada';
 import EditorVanos from './componentes/EditorVanos';
 import ListaMateriales from './componentes/ListaMateriales';
 import Panel from './componentes/Panel';
@@ -41,6 +54,79 @@ const CONFIG_INICIAL = {
     mermaPct: '5',
     piezasPorEsquina: 3,
 };
+
+const MM_POR_UNIDAD = { m: 1000, cm: 10, mm: 1, ft: 304.8, in: 25.4 };
+
+const aMm = (valor, unidad) => Math.round((Number(valor) || 0) * MM_POR_UNIDAD[unidad]);
+
+/**
+ * Decimales con que tiene sentido mostrar cada unidad.
+ *
+ * Es la misma tabla que `Unidad::decimales()` en el backend, y por la misma
+ * razón: como todo se guarda en milímetros enteros, mostrar más decimales de los
+ * que la unidad puede representar deja al descubierto el redondeo. 8 pies se
+ * guardan como 2438 mm y al volver dan 7,99869, que hay que mostrar como 8,00 o
+ * el usuario cree que la aplicación le cambió el dato.
+ *
+ * Está duplicada a los dos lados a sabiendas: son cinco números que no cambian
+ * nunca, y la alternativa —pedirle al backend el valor ya formateado en cada
+ * campo— agrega plomería a cambio de nada.
+ */
+const DECIMALES = { mm: 0, cm: 1, m: 3, in: 1, ft: 2 };
+
+/** De milímetros guardados al número que se muestra en el campo. */
+function desdeMm(mm, unidad) {
+    const valor = (Number(mm) || 0) / MM_POR_UNIDAD[unidad];
+
+    return String(Number(valor.toFixed(DECIMALES[unidad] ?? 2)));
+}
+
+/**
+ * Traduce un proyecto guardado al estado del formulario.
+ *
+ * La base guarda milímetros; los campos muestran el número en la unidad que el
+ * usuario había elegido. Sin esta vuelta, reabrir un proyecto hecho en pies lo
+ * mostraría en milímetros y parecería otro.
+ */
+function desdeApi(proyecto) {
+    const u = proyecto.planta?.unidad_ingreso ?? 'm';
+    const t = proyecto.tabiqueria;
+
+    const vanos = {};
+    proyecto.caras.forEach((cara, i) => {
+        vanos[i] = cara.vanos.map((v) => ({
+            tipo: v.tipo,
+            ancho: desdeMm(v.ancho_mm, v.unidad),
+            alto: desdeMm(v.alto_mm, v.unidad),
+            antepecho: desdeMm(v.antepecho_mm, v.unidad),
+            cantidad: v.cantidad,
+            unidad: v.unidad,
+            desdeTramo: null,
+        }));
+    });
+
+    return {
+        nombre: proyecto.nombre,
+        planta: {
+            largo: desdeMm(proyecto.planta?.largo_mm, u),
+            ancho: desdeMm(proyecto.planta?.ancho_mm, u),
+            alto: desdeMm(proyecto.planta?.alto_mm, u),
+            unidad: u,
+        },
+        config: t === null ? null : {
+            escuadriaId: t.escuadria_id,
+            largoComercialMm: t.largo_comercial_mm,
+            separacion: desdeMm(t.separacion_mm, t.separacion_unidad),
+            separacionUnidad: t.separacion_unidad,
+            filasCadenetas: t.filas_cadenetas,
+            solerasSuperiores: t.soleras_superiores,
+            mermaPct: String(t.merma_pct),
+            piezasPorEsquina: 3,
+        },
+        capas: Object.fromEntries(proyecto.capas.map((c) => [c.tipo, c.producto_capa_id])),
+        vanos,
+    };
+}
 
 /** Vanos de arranque, para que la pantalla muestre algo real desde el principio. */
 const VANOS_INICIALES = {
@@ -98,6 +184,15 @@ export default function App() {
     // sin salir de la pantalla, para poder ajustar un precio y ver el documento
     // moverse en el mismo golpe de vista.
     const [vista, setVista] = useState('plano');
+    const [usuario, setUsuario] = useState(null);
+    const [mostrandoEntrada, setMostrandoEntrada] = useState(false);
+    const [proyectoId, setProyectoId] = useState(null);
+    const [nombre, setNombre] = useState('Proyecto sin nombre');
+    const [mios, setMios] = useState([]);
+    const [guardando, setGuardando] = useState(false);
+    // Firma de lo último que se guardó. Comparar es más barato y más fiable que
+    // un efecto que ponga "sin guardar" en cada tecla.
+    const [firmaGuardada, setFirmaGuardada] = useState(null);
     const [catalogo, setCatalogo] = useState(null);
     const [planta, setPlanta] = useState(PLANTA_INICIAL);
     const [config, setConfig] = useState(CONFIG_INICIAL);
@@ -120,6 +215,23 @@ export default function App() {
         window.location.hash = nueva;
         setSeccion(nueva);
     }, []);
+
+    // Si hay token guardado se comprueba contra la API en vez de darlo por bueno:
+    // pudo vencer o haber sido revocado desde otro dispositivo.
+    useEffect(() => {
+        if (!leerToken()) return;
+
+        quienSoy()
+            .then(setUsuario)
+            .catch(() => guardarToken(null));
+    }, []);
+
+    // La lista de proyectos se refresca cada vez que cambia quién está adentro.
+    useEffect(() => {
+        if (!usuario) return;
+
+        listarProyectos().then((d) => setMios(d.proyectos)).catch(() => {});
+    }, [usuario]);
 
     // --- catálogo, una sola vez ---
     useEffect(() => {
@@ -204,6 +316,76 @@ export default function App() {
 
     // Se memoriza la lista y no sólo el total: `?? []` crea un arreglo nuevo en
     // cada render, así que sin esto el useMemo del total no memorizaría nada.
+    const iniciarSesion = useCallback(async (email, clave) => {
+        const { token, usuario: quien } = await entrar(email, clave);
+
+        guardarToken(token);
+        setUsuario(quien);
+        setMostrandoEntrada(false);
+    }, []);
+
+    const cerrarSesion = useCallback(async () => {
+        await salir().catch(() => {});
+
+        guardarToken(null);
+        setUsuario(null);
+        setProyectoId(null);
+        setMios([]);
+    }, []);
+
+    const guardar = useCallback(async () => {
+        if (!usuario) {
+            setMostrandoEntrada(true);
+            return;
+        }
+
+        if (!cuerpo) return;
+
+        setGuardando(true);
+
+        try {
+            const payload = {
+                ...cuerpo,
+                nombre,
+                planta: {
+                    largo_mm: aMm(planta.largo, planta.unidad),
+                    ancho_mm: aMm(planta.ancho, planta.unidad),
+                    alto_mm: aMm(planta.alto, planta.unidad),
+                    unidad_ingreso: planta.unidad,
+                },
+            };
+
+            const guardado = proyectoId
+                ? await actualizarProyecto(proyectoId, payload)
+                : await crearProyecto(payload);
+
+            setProyectoId(guardado.id);
+            setFirmaGuardada(JSON.stringify({ cuerpo, nombre }));
+            listarProyectos().then((d) => setMios(d.proyectos)).catch(() => {});
+        } catch (e) {
+            setError(e.message);
+        } finally {
+            setGuardando(false);
+        }
+    }, [usuario, cuerpo, nombre, planta, proyectoId]);
+
+    const abrir = useCallback(async (id) => {
+        try {
+            const datos = desdeApi(await abrirProyecto(id));
+
+            setProyectoId(id);
+            setNombre(datos.nombre);
+            setPlanta(datos.planta);
+            setVanos(datos.vanos);
+            if (datos.config) setConfig((c) => ({ ...c, ...datos.config }));
+            setCapas((c) => ({ ...c, ...datos.capas }));
+            setPrecios({});
+            setFirmaGuardada(null);
+        } catch (e) {
+            setError(e.message);
+        }
+    }, []);
+
     const materiales = useMemo(() => resultado?.materiales ?? [], [resultado]);
 
     const total = useMemo(
@@ -212,7 +394,12 @@ export default function App() {
     );
 
     const faltantes = materiales.filter((m) => !precios[m.clave]).length;
+    const estaGuardado = firmaGuardada !== null && firmaGuardada === JSON.stringify({ cuerpo, nombre });
     const enMm = (valor) => (Number(valor) || 0) * { m: 1000, cm: 10, mm: 1, ft: 304.8, in: 25.4 }[planta.unidad];
+
+    if (mostrandoEntrada) {
+        return <Entrada onEntro={iniciarSesion} onCancelar={() => setMostrandoEntrada(false)} />;
+    }
 
     if (error && !catalogo) {
         return (
@@ -230,7 +417,14 @@ export default function App() {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
-            <BarraSuperior titulo="Presupuesto" fecha={HOY} onVolver={() => {}} />
+            <BarraSuperior
+                titulo="Presupuesto"
+                fecha={HOY}
+                onVolver={() => {}}
+                usuario={usuario}
+                onEntrar={() => setMostrandoEntrada(true)}
+                onSalir={cerrarSesion}
+            />
 
             <main
                 className="plano"
@@ -258,6 +452,49 @@ export default function App() {
                     </Panel>
 
                     {error && <p className="aviso">{error}</p>}
+
+                    {seccion === 'proyecto' && (
+                        <Panel style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <label className="campo">
+                                <span className="campo__rotulo">Nombre del proyecto</span>
+                                <span className="campo__control">
+                                    <input
+                                        className="entrada"
+                                        value={nombre}
+                                        onChange={(e) => setNombre(e.target.value)}
+                                    />
+                                </span>
+                            </label>
+
+                            <Boton onClick={guardar} disabled={guardando || estaGuardado}>
+                                {guardando
+                                    ? 'Guardando…'
+                                    : estaGuardado
+                                        ? 'Guardado'
+                                        : usuario
+                                            ? (proyectoId ? 'Guardar cambios' : 'Guardar proyecto')
+                                            : 'Entrar para guardar'}
+                            </Boton>
+
+                            {mios.length > 0 && (
+                                <label className="campo">
+                                    <span className="campo__rotulo">Abrir uno guardado</span>
+                                    <span className="campo__control">
+                                        <select
+                                            className="selector"
+                                            value={proyectoId ?? ''}
+                                            onChange={(e) => e.target.value && abrir(Number(e.target.value))}
+                                        >
+                                            <option value="">— elegir —</option>
+                                            {mios.map((p) => (
+                                                <option key={p.id} value={p.id}>{p.nombre}</option>
+                                            ))}
+                                        </select>
+                                    </span>
+                                </label>
+                            )}
+                        </Panel>
+                    )}
 
                     {seccion === 'proyecto' && (
                         <Panel style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
