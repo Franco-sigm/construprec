@@ -70,16 +70,26 @@ class PresupuestoLinea extends Model
     }
 
     /**
-     * Subtotal de la linea, ya en la moneda del presupuesto.
+     * Subtotal de una linea, ya en la moneda del presupuesto.
      *
-     * Se calcula sobre `cantidad_comprar` y no sobre `cantidad`: se paga lo que se
-     * compra, no lo que se ocupa. Media plancha de OSB se cobra entera.
+     * Se calcula sobre la cantidad a comprar y no sobre la que se ocupa: se paga
+     * lo que se compra, y media plancha de OSB se cobra entera.
+     *
+     * Es estatico para poder resolverlo antes de construir la fila. Guardar el
+     * subtotal ya calculado, en vez de asignarlo despues, evita que exista un
+     * instante en que la linea esta en la base con total cero.
      */
+    public static function subtotalDe(float $cantidadComprar, float $precioUnitario, float $tasaCambio): float
+    {
+        return round($cantidadComprar * $precioUnitario * $tasaCambio, 4);
+    }
+
     public function calcularSubtotal(): float
     {
-        return round(
-            (float) $this->cantidad_comprar * (float) $this->precio_unitario * (float) $this->tasa_cambio,
-            4,
+        return self::subtotalDe(
+            (float) $this->cantidad_comprar,
+            (float) $this->precio_unitario,
+            (float) $this->tasa_cambio,
         );
     }
 }
