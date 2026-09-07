@@ -341,6 +341,7 @@ export default function App() {
                             vanosPorCara={Object.fromEntries(
                                 (resultado?.caras ?? []).map((c, i) => [i, c.vanos]),
                             )}
+                            filasCadenetas={resultado?.tabiqueria?.filas_cadenetas ?? 0}
                         />
                     </Panel>
 

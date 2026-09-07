@@ -58,6 +58,12 @@ class CalcularRequest extends FormRequest
             'tabiqueria.soleras_superiores' => ['nullable', 'integer', 'min:1', 'max:3'],
             'tabiqueria.filas_cadenetas' => ['nullable', 'integer', 'min:0', 'max:5'],
             'tabiqueria.merma_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            // Piezas en el encuentro de dos muros, contando las dos que ya aporta
+            // cada cara. Tres es el armado habitual; cero desactiva el refuerzo.
+            'tabiqueria.piezas_por_esquina' => ['nullable', 'integer', 'min:0', 'max:6'],
+            // Si las caras forman un contorno cerrado hay tantas esquinas como
+            // caras. Una pared suelta no tiene ninguna.
+            'tabiqueria.contorno_cerrado' => ['nullable', 'boolean'],
 
             'capas' => ['nullable', 'array', 'max:12'],
             'capas.*.producto_capa_id' => ['required', 'integer', 'exists:productos_capa,id'],

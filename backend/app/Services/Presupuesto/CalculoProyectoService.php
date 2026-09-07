@@ -60,6 +60,9 @@ final class CalculoProyectoService
             // poder distinguirlas.
             clavesCapa: $proyecto->capas->map(fn (ProyectoCapa $c) => 'capa_'.$c->id)->all(),
             materialIds: $proyecto->capas->map(fn (ProyectoCapa $c) => $c->material_id)->all(),
+            // Las caras de un proyecto salen de una planta, así que forman un
+            // contorno cerrado y hay tantos encuentros como muros.
+            esquinas: $proyecto->caras->count(),
         );
     }
 }

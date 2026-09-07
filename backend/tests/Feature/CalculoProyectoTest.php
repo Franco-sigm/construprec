@@ -21,9 +21,12 @@ it('llega a las mismas cantidades que el cálculo verificado a mano', function (
     expect($calculo->despiece->superficieBrutaM2)->toBe(48.0)
         ->and($calculo->despiece->superficieVanosM2)->toBe(4.0)
         ->and($calculo->despiece->superficieNetaM2())->toBe(44.0)
-        ->and($calculo->planCorte->tirasNetas())->toBe(72)
-        // 72 tiras con 5% de merma.
-        ->and($calculo->materiales[0]->cantidadComprar)->toBe(76.0);
+        // 72 del despiece de las caras más 4 postes de esquina, uno por
+        // encuentro: cada uno ocupa una tira propia porque mide 2,318 y de una
+        // tira de 3,2 no salen dos.
+        ->and($calculo->planCorte->tirasNetas())->toBe(76)
+        // 76 tiras con 5% de descarte.
+        ->and($calculo->materiales[0]->cantidadComprar)->toBe(80.0);
 });
 
 it('guarda el desglose completo para poder auditar la cantidad', function () {

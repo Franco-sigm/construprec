@@ -44,13 +44,13 @@ function armar(array $valores, string $moneda = 'CLP'): Presupuesto
 
 describe('el presupuesto completo', function () {
     it('multiplica cantidad por precio y suma el total', function () {
-        // 76 tiras x 4.250 + 16 planchas x 18.990 + 1 rollo x 45.900
+        // 80 tiras x 4.250 + 16 planchas x 18.990 + 1 rollo x 45.900
         $p = armar([4250, 18990, 45900]);
 
         expect($p->lineas)->toHaveCount(3)
-            ->and((float) $p->total)->toBe(76.0 * 4250 + 16.0 * 18990 + 1.0 * 45900)
-            // 323.000 + 303.840 + 45.900
-            ->and((float) $p->total)->toBe(672740.0);
+            ->and((float) $p->total)->toBe(80.0 * 4250 + 16.0 * 18990 + 1.0 * 45900)
+            // 340.000 + 303.840 + 45.900
+            ->and((float) $p->total)->toBe(689740.0);
     });
 
     it('nace en borrador y colgando del proyecto', function () {
@@ -89,7 +89,7 @@ describe('el presupuesto completo', function () {
         // pagar.
         $p = armar([4250.55, 0, 0]);
 
-        expect((float) $p->total)->toBe(round(76 * 4250.55))
+        expect((float) $p->total)->toBe(round(80 * 4250.55))
             ->and(fmod((float) $p->total, 1.0))->toBe(0.0);
     });
 });
@@ -123,8 +123,8 @@ describe('precios en otra moneda', function () {
 
         expect((float) $madera->tasa_cambio)->toBe(950.0)
             ->and($madera->moneda_origen)->toBe('USD')
-            // 76 tiras x USD 10 x 950.
-            ->and((float) $madera->subtotal)->toBe(722000.0);
+            // 80 tiras x USD 10 x 950.
+            ->and((float) $madera->subtotal)->toBe(760000.0);
     });
 
     it('avisa cuando no hay tasa para la fecha', function () {

@@ -98,10 +98,11 @@ describe('el cálculo', function () {
         $r->assertOk()
             ->assertJsonPath('obra.superficie_bruta_m2', fn ($v) => (float) $v === 48.0)
             ->assertJsonPath('obra.superficie_neta_m2', fn ($v) => (float) $v === 44.0)
-            ->assertJsonPath('corte.tiras_a_comprar', 76);
+            // 76 del despiece más 4 postes de esquina, con 5% de descarte.
+            ->assertJsonPath('corte.tiras_a_comprar', 80);
 
         expect($r->json('materiales.0.clave'))->toBe('madera')
-            ->and((float) $r->json('materiales.0.cantidad_comprar'))->toBe(76.0);
+            ->and((float) $r->json('materiales.0.cantidad_comprar'))->toBe(80.0);
 
         // Es una consulta pura: no puede haber quedado nada escrito.
         $this->assertDatabaseCount('proyectos', 0);

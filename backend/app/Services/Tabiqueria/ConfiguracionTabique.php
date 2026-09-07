@@ -32,6 +32,16 @@ final readonly class ConfiguracionTabique
         public float $mermaPct = 0.0,
         public int $filasCadenetas = 1,
         public int $anchoCorteMm = 3,
+        /**
+         * Piezas que lleva el encuentro de dos muros, contando las que ya aporta
+         * cada cara.
+         *
+         * Dos es lo que sale solo: el pie derecho de cierre de una cara y el de
+         * arranque de la otra. Tres es el armado habitual, que agrega una pieza
+         * para que el canto de la plancha interior encuentre clavador. Cero
+         * desactiva el refuerzo, para contrastar contra un calculo hecho a mano.
+         */
+        public int $piezasPorEsquina = 3,
     ) {
         if ($separacion->esCero()) {
             throw new InvalidArgumentException('La separacion entre pies derechos no puede ser cero.');
@@ -55,6 +65,10 @@ final readonly class ConfiguracionTabique
 
         if ($anchoCorteMm < 0) {
             throw new InvalidArgumentException('El ancho de corte no puede ser negativo.');
+        }
+
+        if ($piezasPorEsquina < 0) {
+            throw new InvalidArgumentException('Las piezas por esquina no pueden ser negativas.');
         }
     }
 
@@ -168,6 +182,17 @@ final readonly class ConfiguracionTabique
         $cercano = $this->anchoModularMasCercano($anchoVano);
 
         return $cercano !== null && abs($cercano->mm - $anchoVano->mm) <= 1;
+    }
+
+    /**
+     * Piezas que hay que AGREGAR por cada esquina.
+     *
+     * Se descuentan las dos que ya vienen contadas, una por cada cara que llega
+     * al encuentro. Sumarlas otra vez las cotizaria dos veces.
+     */
+    public function piezasExtraPorEsquina(): int
+    {
+        return max(0, $this->piezasPorEsquina - 2);
     }
 
     /** El dintel va de canto, asi que su alto es la profundidad del tabique salvo que se elija otra escuadria. */

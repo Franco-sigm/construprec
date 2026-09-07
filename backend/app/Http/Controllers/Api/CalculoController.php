@@ -56,6 +56,7 @@ class CalculoController extends Controller
             escuadriaDintelAlto: $dintel?->alto(),
             mermaPct: (float) ($datos['tabiqueria']['merma_pct'] ?? 0),
             filasCadenetas: $datos['tabiqueria']['filas_cadenetas'] ?? 1,
+            piezasPorEsquina: $datos['tabiqueria']['piezas_por_esquina'] ?? 3,
         );
 
         [$capas, $claves] = $this->capas($datos['capas'] ?? []);
@@ -67,6 +68,9 @@ class CalculoController extends Controller
             capas: $capas,
             nombreMadera: sprintf('Pino %s %.2f m', $escuadria->descripcion(), $largoComercial / 1000),
             clavesCapa: $claves,
+            // Un contorno cerrado tiene tantos encuentros como muros: cuatro caras
+            // de una planta rectangular dan cuatro esquinas.
+            esquinas: ($datos['tabiqueria']['contorno_cerrado'] ?? true) ? count($caras) : 0,
         );
 
         return response()->json([
@@ -97,6 +101,9 @@ class CalculoController extends Controller
                 'separacion_mm' => $config->separacion->mm,
                 'espesor_pieza_mm' => $config->escuadriaAncho->mm,
                 'largo_comercial_mm' => $config->largoComercial->mm,
+                'filas_cadenetas' => $config->filasCadenetas,
+                'largo_cadeneta_mm' => $config->largoCadeneta()->mm,
+                'piezas_por_esquina' => $config->piezasPorEsquina,
                 // Anchos de vano que dejan las jambas sobre la trama de pies
                 // derechos. Se mandan para que la interfaz pueda proponerlos sin
                 // reimplementar la fórmula y arriesgarse a que se desincronicen.

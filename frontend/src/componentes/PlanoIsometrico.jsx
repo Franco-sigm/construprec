@@ -78,6 +78,18 @@ function ubicarVanos(vanos, largoMuro, separacion, espesor) {
     });
 }
 
+/**
+ * A qué alturas van las filas de cadenetas.
+ *
+ * Se reparten parejo entre solera y solera: una fila va a media altura, dos a
+ * los tercios, tres a los cuartos. No es una convención inventada — el punto de
+ * la cadeneta es acortar el tramo libre del pie derecho para que no pandee, y
+ * eso se logra dividiéndolo en partes iguales.
+ */
+function alturasDeCadenetas(alto, filas) {
+    return Array.from({ length: filas }, (_, i) => (alto * (i + 1)) / (filas + 1));
+}
+
 function posicionesDePiesDerechos(largoMuro, separacion) {
     const posiciones = [];
     for (let d = 0; d < largoMuro; d += separacion) {
@@ -87,7 +99,7 @@ function posicionesDePiesDerechos(largoMuro, separacion) {
     return posiciones;
 }
 
-function Muro({ muro, alto, separacion, trazo, espesor, vanos = [], tenue }) {
+function Muro({ muro, alto, separacion, trazo, espesor, vanos = [], filasCadenetas = 0, tenue }) {
     const [x0, y0] = muro.desde;
     const [x1, y1] = muro.hasta;
     const ubicados = ubicarVanos(vanos, muro.largo, separacion, espesor);
@@ -137,6 +149,36 @@ function Muro({ muro, alto, separacion, trazo, espesor, vanos = [], tenue }) {
                         />
                     );
                 })}
+
+            {/* Cadenetas: una por espacio libre entre pies derechos y por fila.
+                Donde hay vano no van —ahí traban el dintel y el alféizar— así que
+                se saltan igual que se saltan los pies derechos dentro del hueco,
+                y el corte se ve en el dibujo. */}
+            {filasCadenetas > 0 && alturasDeCadenetas(alto, filasCadenetas).map((z) => {
+                const pilares = posicionesDePiesDerechos(muro.largo, separacion);
+
+                return pilares.slice(0, -1).map((desde, i) => {
+                    const hasta = pilares[i + 1];
+                    const medio = (desde + hasta) / 2;
+
+                    if (ubicados.some((v) => medio > v.desde && medio < v.hasta)) {
+                        return null;
+                    }
+
+                    return (
+                        <line
+                            key={`${z}-${desde}`}
+                            x1={proyectar(x0 + dx * desde, y0 + dy * desde, z).x}
+                            y1={proyectar(x0 + dx * desde, y0 + dy * desde, z).y}
+                            x2={proyectar(x0 + dx * hasta, y0 + dy * hasta, z).x}
+                            y2={proyectar(x0 + dx * hasta, y0 + dy * hasta, z).y}
+                            stroke={tenue ? '#a97a42' : '#b98d52'}
+                            strokeWidth={trazo * 0.8}
+                            strokeLinecap="round"
+                        />
+                    );
+                });
+            })}
 
             {/* Marco de cada vano: jambas a los lados, dintel arriba y alféizar
                 abajo en las ventanas. */}
@@ -208,6 +250,7 @@ export default function PlanoIsometrico({
     separacionMm = 400,
     espesorPiezaMm = 41,
     vanosPorCara = {},
+    filasCadenetas = 0,
 }) {
     const muros = murosDe(largoMm, anchoMm);
 
@@ -295,6 +338,7 @@ export default function PlanoIsometrico({
                     trazo={trazo}
                     espesor={espesorPiezaMm}
                     vanos={vanosPorCara[i] ?? []}
+                    filasCadenetas={filasCadenetas}
                     // Los dos de atrás van atenuados y se pintan primero, para que
                     // los de adelante los tapen: es lo único que da volumen sin
                     // calcular oclusión de verdad.

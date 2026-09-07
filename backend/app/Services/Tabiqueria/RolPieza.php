@@ -44,6 +44,17 @@ enum RolPieza: string
     case Cadeneta = 'cadeneta';
 
     /**
+     * Pieza extra en el encuentro de dos muros.
+     *
+     * Donde se juntan dos caras ya hay dos pies derechos: el de cierre de una y
+     * el de arranque de la otra. Pero ninguno de los dos deja cara libre hacia
+     * adentro, asi que el canto de la plancha que llega a la esquina no tiene
+     * donde clavarse y hay que resolverlo a medida en obra. El poste de esquina
+     * es la pieza que se agrega para dar ese apoyo.
+     */
+    case PosteEsquina = 'poste_esquina';
+
+    /**
      * Si la pieza es una corrida que admite empalme.
      *
      * Distingue como se compra. Una solera de 6 m se arma con dos tiras de 3,2 m
@@ -74,6 +85,7 @@ enum RolPieza: string
             self::PieDerechoBajoVano => 'Pie derecho bajo vano',
             self::PieDerechoSobreVano => 'Pie derecho sobre vano',
             self::Cadeneta => 'Cadeneta',
+            self::PosteEsquina => 'Poste de esquina',
         };
     }
 }

@@ -9,8 +9,11 @@ use App\Services\Capas\ConsumoCapaService;
 use App\Services\Tabiqueria\ConfiguracionTabique;
 use App\Services\Tabiqueria\Despiece;
 use App\Services\Tabiqueria\DespieceService;
+use App\Services\Tabiqueria\Pieza;
 use App\Services\Tabiqueria\PlanCorte;
 use App\Services\Tabiqueria\PlanCorteService;
+use App\Services\Tabiqueria\RolPieza;
+use App\Support\Medida;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
@@ -33,6 +36,7 @@ final class Calculadora
      * @param  list<Capa>  $capas
      * @param  list<string>  $clavesCapa  clave de cada capa, en el mismo orden que $capas
      * @param  list<int|null>  $materialIds  material del catálogo de cada capa, si tenía uno
+     * @param  int  $esquinas  encuentros entre muros. Cero si las caras no forman contorno cerrado.
      */
     public function calcular(
         array $caras,
@@ -41,6 +45,7 @@ final class Calculadora
         string $nombreMadera = 'Madera de tabiquería',
         array $clavesCapa = [],
         array $materialIds = [],
+        int $esquinas = 0,
     ): CalculoProyecto {
         if ($caras === []) {
             throw new UnprocessableEntityHttpException('No hay ninguna cara que calcular.');
@@ -50,6 +55,8 @@ final class Calculadora
             fn (Cara $cara) => $this->despiece->deCara($cara->largo, $cara->alto, $cara->vanos, $config),
             $caras,
         ));
+
+        $despiece = $this->conPostesDeEsquina($despiece, $caras, $config, $esquinas);
 
         $plan = $this->planCorte->para($despiece->piezas, $config);
 
@@ -65,6 +72,44 @@ final class Calculadora
         }
 
         return new CalculoProyecto($despiece, $plan, $materiales);
+    }
+
+    /**
+     * Agrega los refuerzos de esquina al despiece ya combinado.
+     *
+     * Va acá y no en el despiece de cada cara porque la esquina es de las dos:
+     * contarla dentro de `deCara` la cotizaría dos veces, una por cada muro que
+     * llega al encuentro.
+     *
+     * @param  list<Cara>  $caras
+     */
+    private function conPostesDeEsquina(
+        Despiece $despiece,
+        array $caras,
+        ConfiguracionTabique $config,
+        int $esquinas,
+    ): Despiece {
+        $extra = $config->piezasExtraPorEsquina();
+
+        if ($esquinas < 1 || $extra < 1) {
+            return $despiece;
+        }
+
+        // La esquina une dos caras que pueden tener distinto alto. Se toma la más
+        // alta: una pieza corta no llega arriba, y recortar es trivial mientras
+        // que alargar no se puede.
+        $alto = $config->altoPieDerecho(
+            array_reduce(
+                $caras,
+                fn (?Medida $mayor, Cara $c) => $mayor === null || $c->alto->mayorQue($mayor) ? $c->alto : $mayor,
+                null,
+            ),
+        );
+
+        return Despiece::combinar(
+            $despiece,
+            new Despiece([new Pieza(RolPieza::PosteEsquina, $alto, $esquinas * $extra)], 0.0, 0.0, 0.0),
+        );
     }
 
     /**
