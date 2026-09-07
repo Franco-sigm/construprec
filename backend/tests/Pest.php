@@ -2,6 +2,7 @@
 
 use App\Models\CaraVano;
 use App\Models\Escuadria;
+use App\Models\ProductoCapa;
 use App\Models\Proyecto;
 use App\Models\ProyectoCapa;
 use App\Models\ProyectoCara;
@@ -113,4 +114,39 @@ function proyectoDePrueba(array $capas = []): Proyecto
 function calcular(Proyecto $proyecto)
 {
     return app(CalculoProyectoService::class)->para($proyecto);
+}
+
+function payloadProyecto(array $sobrescribir = []): array
+{
+    $escuadria = Escuadria::where('nominal', '2x3')->where('estado', 'seco_cepillado')->firstOrFail();
+    $osb = ProductoCapa::where('nombre', 'like', 'OSB estructural 11,1%')->firstOrFail();
+
+    $caras = $sobrescribir['caras'] ?? null;
+    unset($sobrescribir['caras']);
+
+    $base = array_replace_recursive([
+        'nombre' => 'Ampliación living',
+        'planta' => ['ancho_mm' => 4000, 'largo_mm' => 6000, 'alto_mm' => 2400, 'unidad_ingreso' => 'm'],
+        'tabiqueria' => [
+            'escuadria_id' => $escuadria->id,
+            'largo_comercial_mm' => 3200,
+            'separacion' => 0.4,
+            'separacion_unidad' => 'm',
+            'filas_cadenetas' => 1,
+            'merma_pct' => 5,
+        ],
+        'capas' => [['producto_capa_id' => $osb->id, 'aplicacion' => 'exterior']],
+    ], $sobrescribir);
+
+    $base['caras'] = $caras ?? [
+        ['nombre' => 'Cara 1', 'largo' => 6, 'alto' => 2.4, 'unidad' => 'm', 'vanos' => [
+            ['tipo' => 'puerta', 'ancho' => 0.9, 'alto' => 2.0],
+            ['tipo' => 'ventana', 'ancho' => 1.2, 'alto' => 1.0, 'antepecho' => 0.9],
+        ]],
+        ['nombre' => 'Cara 2', 'largo' => 4, 'alto' => 2.4, 'unidad' => 'm'],
+        ['nombre' => 'Cara 3', 'largo' => 6, 'alto' => 2.4, 'unidad' => 'm'],
+        ['nombre' => 'Cara 4', 'largo' => 4, 'alto' => 2.4, 'unidad' => 'm'],
+    ];
+
+    return $base;
 }

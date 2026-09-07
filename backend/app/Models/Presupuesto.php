@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * El resultado del calculo, congelado.
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $nombre
  * @property string $moneda_destino
  * @property string $estado
+ * @property Carbon|null $fecha
  * @property numeric-string $total
  * @property-read Moneda|null $moneda
  */
