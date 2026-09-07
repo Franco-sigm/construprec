@@ -55,6 +55,74 @@ function Encaje({ diagnostico, unidad, onAjustar }) {
     );
 }
 
+/**
+ * Corre el vano de a un pie derecho.
+ *
+ * Con botones y no con un campo numérico a propósito: el vano tiene que arrancar
+ * sobre un pie derecho igual, y escribir la posición con una regla permitiría
+ * dejarlo a 37 cm del anterior, que es justo el error que la trama evita. Además
+ * se ve moverse en el dibujo mientras se aprieta.
+ */
+function Ubicacion({ vano, diagnostico, onCambiar }) {
+    const ultimo = diagnostico?.ultimo_tramo_posible ?? 1;
+    const actual = vano.desdeTramo;
+
+    if (actual == null) {
+        return (
+            <div className="ubicacion">
+                <span className="ubicacion__valor" style={{ fontFamily: 'var(--fuente-texto)' }}>
+                    Repartido automáticamente
+                </span>
+                <button
+                    type="button"
+                    className="boton-chico"
+                    onClick={() => onCambiar({ desdeTramo: 1 })}
+                >
+                    Ubicar
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="ubicacion">
+            <button
+                type="button"
+                className="flecha"
+                onClick={() => onCambiar({ desdeTramo: Math.max(1, actual - 1) })}
+                disabled={actual <= 1}
+                aria-label="Correr un pie derecho hacia la izquierda"
+            >
+                ◀
+            </button>
+
+            <span className="ubicacion__valor">
+                Pie derecho {actual}
+                <span className="visualmente-oculto"> de {ultimo} posibles</span>
+            </span>
+
+            <button
+                type="button"
+                className="flecha"
+                onClick={() => onCambiar({ desdeTramo: Math.min(ultimo, actual + 1) })}
+                disabled={actual >= ultimo}
+                aria-label="Correr un pie derecho hacia la derecha"
+            >
+                ▶
+            </button>
+
+            <button
+                type="button"
+                className="boton-chico"
+                onClick={() => onCambiar({ desdeTramo: null })}
+                title="Volver a repartirlo automáticamente"
+            >
+                Auto
+            </button>
+        </div>
+    );
+}
+
 function Vano({ vano, diagnostico, onCambiar, onQuitar }) {
     const esVentana = vano.tipo === 'ventana';
 
@@ -79,11 +147,17 @@ function Vano({ vano, diagnostico, onCambiar, onQuitar }) {
                 <Selector
                     rotulo="Cantidad"
                     valor={vano.cantidad}
-                    onCambiar={(v) => onCambiar({ cantidad: Number(v) })}
+                    onCambiar={(v) => onCambiar({
+                        cantidad: Number(v),
+                        // Varios vanos no pueden compartir la misma posición: al
+                        // pedir más de uno vuelven a repartirse solos.
+                        ...(Number(v) > 1 ? { desdeTramo: null } : {}),
+                    })}
                     opciones={[1, 2, 3, 4, 5, 6, 8, 10].map((n) => ({
                         valor: n,
                         rotulo: n === 1 ? '1 (una)' : `${n} iguales`,
                     }))}
+                    nota={vano.cantidad > 1 ? 'Con más de uno se reparten solos.' : null}
                 />
             </div>
 
@@ -119,6 +193,11 @@ function Vano({ vano, diagnostico, onCambiar, onQuitar }) {
                 </div>
             )}
 
+            <span className="campo__rotulo" style={{ display: 'block', marginBottom: 4 }}>
+                Ubicación
+            </span>
+            <Ubicacion vano={vano} diagnostico={diagnostico} onCambiar={onCambiar} />
+
             <div className="vano__pie">
                 <Encaje
                     diagnostico={diagnostico}
@@ -137,8 +216,8 @@ function Vano({ vano, diagnostico, onCambiar, onQuitar }) {
 export default function EditorVanos({ caras, vanos, diagnostico, onVanos }) {
     const agregar = (indiceCara, tipo) => {
         const nuevo = tipo === 'puerta'
-            ? { tipo: 'puerta', ancho: '0.9', alto: '2', antepecho: '0', cantidad: 1, unidad: 'm' }
-            : { tipo: 'ventana', ancho: '1.2', alto: '1', antepecho: '0.9', cantidad: 1, unidad: 'm' };
+            ? { tipo: 'puerta', ancho: '0.9', alto: '2', antepecho: '0', cantidad: 1, unidad: 'm', desdeTramo: null }
+            : { tipo: 'ventana', ancho: '1.2', alto: '1', antepecho: '0.9', cantidad: 1, unidad: 'm', desdeTramo: null };
 
         onVanos(indiceCara, [...(vanos[indiceCara] ?? []), nuevo]);
     };

@@ -49,11 +49,7 @@ final class DespieceService
         foreach ($vanos as $vano) {
             $piezas = [...$piezas, ...$this->enmarcarVano($vano, $altoPieDerecho, $config)];
 
-            // El vano se come los pies derechos de campo que caian dentro de el.
-            // Se usa floor y no round para no descontar de mas: es preferible que
-            // sobre una pieza a que el muro quede sin apoyo.
-            $removidos = (int) floor($vano->ancho->dividirPor($config->separacion));
-            $pilaresBase -= $removidos * $vano->cantidad;
+            $pilaresBase -= $this->pilaresQueOcupa($vano, $config) * $vano->cantidad;
         }
 
         if ($pilaresBase > 0) {
@@ -75,6 +71,24 @@ final class DespieceService
             $vanosM2,
             $config->escuadriaAncho,
         );
+    }
+
+    /**
+     * Cuantos pies derechos de campo se come un vano.
+     *
+     * El marco arranca sobre un pie derecho y termina sobre otro, asi que los que
+     * desaparecen son los que quedan estrictamente entre esos dos. Un vano que
+     * ocupa tres tramos exactos se come dos pies derechos, no tres: el tercero es
+     * la jamba del otro lado.
+     *
+     * Se cuenta sobre el ancho con marco y no sobre el hueco solo, porque son las
+     * jambas las que caen sobre la trama, no los bordes del vano.
+     */
+    private function pilaresQueOcupa(Vano $vano, ConfiguracionTabique $config): int
+    {
+        $tramos = $vano->anchoConMarco($config->escuadriaAncho)->dividirPor($config->separacion);
+
+        return max(0, (int) ceil($tramos) - 1);
     }
 
     /**
@@ -186,6 +200,53 @@ final class DespieceService
                     'Un vano llega mas alto que el espacio disponible entre soleras.'
                 );
             }
+        }
+
+        $this->validarPosiciones($largo, $vanos, $config);
+    }
+
+    /**
+     * Comprueba que los vanos ubicados a mano quepan y no se pisen.
+     *
+     * Solo se revisan los que tienen posicion elegida. Los que quedaron sin ella
+     * los reparte el dibujo, y ahi el solape no puede ocurrir porque se reparten
+     * con espacios calculados.
+     *
+     * @param  list<Vano>  $vanos
+     */
+    private function validarPosiciones(Medida $largo, array $vanos, ConfiguracionTabique $config): void
+    {
+        $ocupados = [];
+
+        foreach ($vanos as $vano) {
+            $inicio = $vano->inicioEn($config->separacion);
+
+            if ($inicio === null) {
+                continue;
+            }
+
+            $fin = $inicio->mas($vano->anchoConMarco($config->escuadriaAncho));
+
+            if ($fin->mayorQue($largo)) {
+                throw new UnprocessableEntityHttpException(sprintf(
+                    'El vano que arranca en el pie derecho %d no cabe: llegaria hasta %s en una cara de %s.',
+                    $vano->desdeTramo,
+                    $fin,
+                    $largo,
+                ));
+            }
+
+            foreach ($ocupados as [$otroInicio, $otroFin, $otroTramo]) {
+                if ($inicio->mm < $otroFin->mm && $otroInicio->mm < $fin->mm) {
+                    throw new UnprocessableEntityHttpException(sprintf(
+                        'Los vanos que arrancan en los pies derechos %d y %d se superponen.',
+                        min($vano->desdeTramo, $otroTramo),
+                        max($vano->desdeTramo, $otroTramo),
+                    ));
+                }
+            }
+
+            $ocupados[] = [$inicio, $fin, $vano->desdeTramo];
         }
     }
 }

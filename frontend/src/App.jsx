@@ -43,11 +43,11 @@ const CONFIG_INICIAL = {
 /** Vanos de arranque, para que la pantalla muestre algo real desde el principio. */
 const VANOS_INICIALES = {
     0: [
-        { tipo: 'puerta', ancho: '0.9', alto: '2', antepecho: '0', cantidad: 1, unidad: 'm' },
-        { tipo: 'ventana', ancho: '1.2', alto: '1', antepecho: '0.9', cantidad: 1, unidad: 'm' },
+        { tipo: 'puerta', ancho: '0.9', alto: '2', antepecho: '0', cantidad: 1, unidad: 'm', desdeTramo: 2 },
+        { tipo: 'ventana', ancho: '1.2', alto: '1', antepecho: '0.9', cantidad: 1, unidad: 'm', desdeTramo: 8 },
     ],
     1: [
-        { tipo: 'ventana', ancho: '1', alto: '1', antepecho: '0.9', cantidad: 1, unidad: 'm' },
+        { tipo: 'ventana', ancho: '1', alto: '1', antepecho: '0.9', cantidad: 1, unidad: 'm', desdeTramo: 4 },
     ],
 };
 
@@ -85,6 +85,7 @@ function paraLaApi(cara) {
                 antepecho: v.tipo === 'puerta' ? 0 : Number(v.antepecho) || 0,
                 cantidad: Number(v.cantidad) || 1,
                 unidad: v.unidad,
+                desde_tramo: v.desdeTramo ?? null,
             })),
     };
 }

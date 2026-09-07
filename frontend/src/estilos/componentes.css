@@ -369,3 +369,50 @@
     border-color: #8c5b4a;
     color: #6d2c1d;
 }
+
+/* -------------------------------------------------- ubicar el vano */
+
+.ubicacion {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.ubicacion__valor {
+    flex: 1;
+    text-align: center;
+    padding: 6px 8px;
+    border: 2px solid var(--madera-borde);
+    border-radius: var(--radio-chico);
+    background: #fffdf6;
+    font-family: var(--fuente-titulo);
+    font-size: 0.88rem;
+    color: var(--tinta);
+    box-shadow: inset 0 2px 4px rgba(70, 40, 12, 0.20);
+}
+
+/* Flecha para correr el vano un pie derecho. Cuadrada y con área de toque
+   suficiente para el dedo, que es como se va a usar en obra. */
+.flecha {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 36px;
+    border: 2px solid var(--madera-borde);
+    border-radius: var(--radio-chico);
+    background: var(--madera-clara);
+    font-size: 1.05rem;
+    line-height: 1;
+    color: var(--tinta);
+    cursor: pointer;
+    box-shadow: inset 0 2px 0 rgba(255, 240, 210, 0.5), 0 2px 3px rgba(40, 25, 10, 0.3);
+}
+
+.flecha:hover:not(:disabled) { filter: brightness(1.06); }
+.flecha:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(70, 40, 12, 0.4); }
+.flecha:focus-visible { outline: 3px solid var(--plano-azul); outline-offset: 2px; }
+
+.flecha:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}

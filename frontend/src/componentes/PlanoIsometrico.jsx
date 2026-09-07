@@ -62,9 +62,11 @@ function ubicarVanos(vanos, largoMuro, separacion, espesor) {
     let cursor = holgura;
 
     return piezas.map((vano, i) => {
-        // Se corre el arranque al pie derecho más cercano: es lo que hace un
-        // carpintero, y hace visible si el vano calza o deja un trozo suelto.
-        const inicio = Math.round(cursor / separacion) * separacion;
+        // Si el usuario lo ubicó, manda su elección. Si no, se reparte y se corre
+        // al pie derecho más cercano, que es lo que haría un carpintero.
+        const inicio = vano.inicio_mm != null
+            ? vano.inicio_mm
+            : Math.round(cursor / separacion) * separacion;
 
         cursor += conMarco[i] + holgura;
 

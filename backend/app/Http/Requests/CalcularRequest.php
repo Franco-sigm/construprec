@@ -44,6 +44,9 @@ class CalcularRequest extends FormRequest
             'caras.*.vanos.*.alto' => ['required', 'numeric', 'gt:0'],
             'caras.*.vanos.*.antepecho' => ['nullable', 'numeric', 'min:0'],
             'caras.*.vanos.*.cantidad' => ['nullable', 'integer', 'min:1', 'max:99'],
+            // Desde qué pie derecho arranca el marco, contando desde 1. Nulo deja
+            // que el cálculo los reparta parejo.
+            'caras.*.vanos.*.desde_tramo' => ['nullable', 'integer', 'min:1', 'max:500'],
             'caras.*.vanos.*.unidad' => ['nullable', $unidades],
 
             'tabiqueria.escuadria_id' => ['required', 'integer', 'exists:escuadrias,id'],
@@ -148,6 +151,7 @@ class CalcularRequest extends FormRequest
             'tabiqueria.escuadria_id.exists' => 'La escuadría elegida no existe en el catálogo.',
             'tabiqueria.separacion.required' => 'Falta la separación entre pies derechos.',
             'capas.*.producto_capa_id.exists' => 'Uno de los productos elegidos no existe en el catálogo.',
+            'caras.*.vanos.*.desde_tramo.min' => 'Los pies derechos se cuentan desde 1.',
         ];
     }
 

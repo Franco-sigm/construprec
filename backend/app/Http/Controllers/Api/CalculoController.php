@@ -122,26 +122,42 @@ class CalculoController extends Controller
      */
     private function diagnosticoDeCaras(array $caras, ConfiguracionTabique $config): array
     {
-        return array_map(fn (Cara $cara) => [
-            'nombre' => $cara->nombre,
-            'largo_mm' => $cara->largo->mm,
-            'alto_mm' => $cara->alto->mm,
-            'superficie_m2' => $cara->largo->porM2($cara->alto),
-            'vanos' => array_map(function (Vano $vano) use ($config) {
-                $cercano = $config->anchoModularMasCercano($vano->ancho);
+        return array_map(function (Cara $cara) use ($config) {
+            // Cuantos pies derechos tiene la cara: uno cada separacion mas el de
+            // cierre. Es el rango entre el que se puede ubicar un vano.
+            $pilares = (int) ceil($cara->largo->dividirPor($config->separacion)) + 1;
 
-                return [
-                    'tipo' => $vano->tipo->value,
-                    'ancho_mm' => $vano->ancho->mm,
-                    'alto_mm' => $vano->alto->mm,
-                    'antepecho_mm' => $vano->antepecho->mm,
-                    'cantidad' => $vano->cantidad,
-                    'calza_con_la_trama' => $config->calzaConLaTrama($vano->ancho),
-                    'tramos_que_ocupa' => $config->tramosQueOcupa($vano->ancho),
-                    'ancho_sugerido_mm' => $cercano?->mm,
-                ];
-            }, $cara->vanos),
-        ], $caras);
+            return [
+                'nombre' => $cara->nombre,
+                'largo_mm' => $cara->largo->mm,
+                'alto_mm' => $cara->alto->mm,
+                'superficie_m2' => $cara->largo->porM2($cara->alto),
+                'pies_derechos' => $pilares,
+                'vanos' => array_map(function (Vano $vano) use ($config, $pilares) {
+                    $cercano = $config->anchoModularMasCercano($vano->ancho);
+                    $conMarco = $vano->anchoConMarco($config->escuadriaAncho);
+                    $ocupa = $conMarco->dividirPor($config->separacion);
+
+                    // Hasta que pie derecho puede correrse sin salirse de la cara.
+                    $ultimo = max(1, $pilares - (int) ceil($ocupa));
+
+                    return [
+                        'tipo' => $vano->tipo->value,
+                        'ancho_mm' => $vano->ancho->mm,
+                        'alto_mm' => $vano->alto->mm,
+                        'antepecho_mm' => $vano->antepecho->mm,
+                        'cantidad' => $vano->cantidad,
+                        'desde_tramo' => $vano->desdeTramo,
+                        'ancho_con_marco_mm' => $conMarco->mm,
+                        'tramos_que_ocupa' => round($ocupa, 4),
+                        'ultimo_tramo_posible' => $ultimo,
+                        'calza_con_la_trama' => $config->calzaConLaTrama($vano->ancho),
+                        'ancho_sugerido_mm' => $cercano?->mm,
+                        'inicio_mm' => $vano->inicioEn($config->separacion)?->mm,
+                    ];
+                }, $cara->vanos),
+            ];
+        }, $caras);
     }
 
     /**
@@ -165,6 +181,7 @@ class CalculoController extends Controller
                         alto: Medida::de($vano['alto'], $u),
                         antepecho: Medida::de($vano['antepecho'] ?? 0, $u),
                         cantidad: $vano['cantidad'] ?? 1,
+                        desdeTramo: $vano['desde_tramo'] ?? null,
                     );
                 }, array_values($cara['vanos'] ?? [])),
                 nombre: $cara['nombre'] ?? '',
