@@ -45,7 +45,7 @@ final class PlanCorteService
         $tirasCorridas = (int) ceil($metrosCorridas / $largoComercial->metros());
 
         return new PlanCorte(
-            tiras: $this->empaquetar($sueltas, $largoComercial),
+            tiras: $this->empaquetar($sueltas, $largoComercial, $config->anchoCorteMm),
             tirasCorridas: $tirasCorridas,
             metrosCorridas: $metrosCorridas,
             largoComercial: $largoComercial,
@@ -77,7 +77,7 @@ final class PlanCorteService
      * @param  list<Pieza>  $piezas
      * @return list<Tira>
      */
-    private function empaquetar(array $piezas, Medida $largoComercial): array
+    private function empaquetar(array $piezas, Medida $largoComercial, int $anchoCorteMm): array
     {
         $cortes = $this->expandirYOrdenar($piezas, $largoComercial);
 
@@ -96,7 +96,7 @@ final class PlanCorteService
             }
 
             if (! $colocado) {
-                $tiras[] = new Tira([$corte], $largoComercial);
+                $tiras[] = new Tira([$corte], $largoComercial, $anchoCorteMm);
             }
         }
 

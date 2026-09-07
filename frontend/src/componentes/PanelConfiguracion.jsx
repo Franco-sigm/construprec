@@ -40,7 +40,7 @@ function Bloque({ titulo, children }) {
     );
 }
 
-export default function PanelConfiguracion({ catalogo, config, onConfig, capas, onCapa }) {
+export default function PanelConfiguracion({ catalogo, config, onConfig, capas, onCapa, perdida = null }) {
     const escuadria = catalogo.escuadrias.find((e) => String(e.id) === String(config.escuadriaId));
 
     // Un producto de siding rinde menos que su ancho porque va montado sobre el
@@ -120,14 +120,23 @@ export default function PanelConfiguracion({ catalogo, config, onConfig, capas, 
                 </p>
 
                 <CampoMedida
-                    rotulo="Merma de la madera"
+                    rotulo="Descarte por defectos"
                     valor={config.mermaPct}
                     unidad="%"
                     onValor={(v) => onConfig({ mermaPct: v })}
                     onUnidad={() => {}}
                     unidades={[{ valor: '%', rotulo: '%' }]}
                     paso="1"
+                    nota="Piezas con nudos, torcidas o rajadas que hay que apartar. Depende del grado de la madera y de la barraca, así que es lo único que no se puede calcular."
                 />
+
+                {perdida !== null && (
+                    <p className="campo__nota" style={{ margin: 0 }}>
+                        El recorte del despiece y lo que se lleva la sierra ya van
+                        calculados aparte: <strong>{perdida.toFixed(1)} %</strong> del
+                        material en este proyecto. No hay que sumarlo acá.
+                    </p>
+                )}
             </Bloque>
 
             <Bloque titulo="Capas">

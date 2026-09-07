@@ -31,6 +31,7 @@ final readonly class ConfiguracionTabique
         public ?Medida $escuadriaDintelAlto = null,
         public float $mermaPct = 0.0,
         public int $filasCadenetas = 1,
+        public int $anchoCorteMm = 3,
     ) {
         if ($separacion->esCero()) {
             throw new InvalidArgumentException('La separacion entre pies derechos no puede ser cero.');
@@ -50,6 +51,10 @@ final readonly class ConfiguracionTabique
 
         if ($filasCadenetas < 0) {
             throw new InvalidArgumentException('Las filas de cadenetas no pueden ser negativas.');
+        }
+
+        if ($anchoCorteMm < 0) {
+            throw new InvalidArgumentException('El ancho de corte no puede ser negativo.');
         }
     }
 

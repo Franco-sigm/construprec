@@ -47,7 +47,10 @@ describe('piezas que salen enteras de una tira', function () {
 
         expect($plan->tiras)->toHaveCount(1)
             ->and($plan->tiras[0]->cortes)->toHaveCount(2)
-            ->and($plan->tiras[0]->sobrante()->mm)->toBe(23);
+            // 3200 - 2318 - 859 = 23 mm de madera, menos los 6 que se lleva la
+            // sierra en los dos cortes.
+            ->and($plan->tiras[0]->sobrante()->mm)->toBe(17)
+            ->and($plan->tiras[0]->aserrinMm())->toBe(6);
     });
 
     it('coloca de mayor a menor para que lo corto rellene y no al reves', function () {
@@ -69,7 +72,8 @@ describe('piezas que salen enteras de una tira', function () {
         );
 
         expect($plan->tiras)->toHaveCount(1)
-            ->and($plan->tiras[0]->sobrante()->metros())->toBe(0.2);
+            // 3,2 - 3,0 = 0,2 m, menos los 9 mm de tres pasadas de sierra.
+            ->and($plan->tiras[0]->sobrante()->metros())->toBe(0.191);
     });
 
     it('rechaza una pieza mas larga que la tira', function () {
@@ -157,5 +161,44 @@ describe('caso completo, planta de 6 x 4', function () {
             ->and($plan->tirasCorridas)->toBe(13)
             // Ninguna tira puede quedar con sobrante negativo ni exceder su largo.
             ->and(array_filter($plan->tiras, fn ($t) => $t->ocupado()->mm > 3200))->toBeEmpty();
+    });
+});
+
+describe('lo que antes se estimaba a ojo y ahora se calcula', function () {
+    it('cuenta la madera que se lleva la sierra', function () {
+        // Cada pasada convierte unos milímetros en aserrín. Es poco, pero es la
+        // diferencia entre que la última pieza quepa o no quepa.
+        $plan = (new PlanCorteService)->para(
+            [new Pieza(RolPieza::PieDerecho, metros(1.0), 9)],
+            conf(),
+        );
+
+        expect($plan->cortesDeSierra())->toBe(9)
+            ->and($plan->aserrinM())->toBe(0.027);
+    });
+
+    it('se puede desactivar poniendo el ancho de corte en cero', function () {
+        // Sirve para contrastar contra un cálculo hecho a mano, donde nadie
+        // descuenta el disco.
+        $plan = (new PlanCorteService)->para(
+            [new Pieza(RolPieza::PieDerecho, metros(1.0), 3)],
+            conf(['anchoCorteMm' => 0]),
+        );
+
+        expect($plan->aserrinM())->toBe(0.0)
+            ->and($plan->tiras[0]->sobrante()->metros())->toBe(0.2);
+    });
+
+    it('informa qué porcentaje del material comprado se pierde de verdad', function () {
+        // Es el número que antes se pedía a ojo. Sirve para contrastar: si
+        // alguien pone 5% de descarte y la pérdida real ya va en 15%, conviene
+        // revisar el largo comercial antes que subir el porcentaje.
+        $plan = (new PlanCorteService)->para(
+            [new Pieza(RolPieza::PieDerecho, metros(2.318), 10)],
+            conf(),
+        );
+
+        expect($plan->perdidaCalculadaPct())->toBeGreaterThan(20.0)
+            ->and($plan->perdidaCalculadaPct())->toBeLessThan(30.0);
     });
 });

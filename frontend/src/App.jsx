@@ -250,6 +250,7 @@ export default function App() {
                             onConfig={(cambio) => setConfig((c) => ({ ...c, ...cambio }))}
                             capas={capas}
                             onCapa={(tipo, id) => setCapas((c) => ({ ...c, [tipo]: id }))}
+                            perdida={resultado?.corte?.perdida_calculada_pct ?? null}
                         />
                     )}
 
@@ -299,7 +300,12 @@ export default function App() {
                                 ['Cavidad real', `${resultado.obra.cavidad_m2.toFixed(2)} m²`],
                                 ['Piezas a cortar', resultado.obra.piezas],
                                 ['Tiras a comprar', resultado.corte.tiras_a_comprar],
+                                // Recorte y aserrín van calculados, no estimados:
+                                // el primero sale del empaquetado y el segundo de
+                                // contar los cortes.
                                 ['Recorte', `${resultado.corte.desperdicio_m.toFixed(1)} m`],
+                                ['Aserrín', `${resultado.corte.aserrin_m.toFixed(2)} m`],
+                                ['Pérdida real', `${resultado.corte.perdida_calculada_pct.toFixed(1)} %`],
                             ].map(([rotulo, valor]) => (
                                 <div key={rotulo} style={{ textAlign: 'center' }}>
                                     <div className="campo__rotulo">{rotulo}</div>
