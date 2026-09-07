@@ -119,6 +119,18 @@ export default function PanelConfiguracion({ catalogo, config, onConfig, capas, 
                     metros de madera pero no suelen costar tiras.
                 </p>
 
+                <Selector
+                    rotulo="Piezas por esquina"
+                    valor={config.piezasPorEsquina}
+                    onCambiar={(v) => onConfig({ piezasPorEsquina: v })}
+                    opciones={[
+                        { valor: 2, rotulo: '2 — sin refuerzo' },
+                        { valor: 3, rotulo: '3 — poste simple' },
+                        { valor: 4, rotulo: '4 — poste doble' },
+                    ]}
+                    nota="En el encuentro ya hay dos pies derechos, uno por cada muro, pero ninguno deja cara libre hacia adentro para clavar el canto de la plancha. Las que se elijan de más se agregan."
+                />
+
                 <CampoMedida
                     rotulo="Descarte por defectos"
                     valor={config.mermaPct}

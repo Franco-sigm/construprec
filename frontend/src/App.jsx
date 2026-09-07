@@ -38,6 +38,7 @@ const CONFIG_INICIAL = {
     filasCadenetas: 1,
     solerasSuperiores: 1,
     mermaPct: '5',
+    piezasPorEsquina: 3,
 };
 
 /** Vanos de arranque, para que la pantalla muestre algo real desde el principio. */
@@ -153,6 +154,7 @@ export default function App() {
                 filas_cadenetas: Number(config.filasCadenetas),
                 soleras_superiores: Number(config.solerasSuperiores),
                 merma_pct: Number(config.mermaPct) || 0,
+                piezas_por_esquina: Number(config.piezasPorEsquina),
             },
             capas: Object.values(capas)
                 .filter(Boolean)
