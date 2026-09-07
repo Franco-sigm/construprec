@@ -47,10 +47,14 @@ enum RolPieza: string
      * Pieza extra en el encuentro de dos muros.
      *
      * Donde se juntan dos caras ya hay dos pies derechos: el de cierre de una y
-     * el de arranque de la otra. Pero ninguno de los dos deja cara libre hacia
-     * adentro, asi que el canto de la plancha que llega a la esquina no tiene
-     * donde clavarse y hay que resolverlo a medida en obra. El poste de esquina
-     * es la pieza que se agrega para dar ese apoyo.
+     * el de arranque de la otra. Pero van perpendiculares entre si, no juntos, y
+     * ninguno deja cara mirando hacia el rincon. El canto de la plancha que llega
+     * ahi queda al aire, sin madera donde clavarse, y hay que resolverlo a medida
+     * en obra.
+     *
+     * La solucion es poner dos pies derechos juntos en uno de los muros: el
+     * segundo va pegado al primero y deja su cara hacia adentro. Eso es lo que
+     * cuenta este rol.
      */
     case PosteEsquina = 'poste_esquina';
 

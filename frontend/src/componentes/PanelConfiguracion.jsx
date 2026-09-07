@@ -124,11 +124,11 @@ export default function PanelConfiguracion({ catalogo, config, onConfig, capas, 
                     valor={config.piezasPorEsquina}
                     onCambiar={(v) => onConfig({ piezasPorEsquina: v })}
                     opciones={[
-                        { valor: 2, rotulo: '2 — sin refuerzo' },
-                        { valor: 3, rotulo: '3 — poste simple' },
-                        { valor: 4, rotulo: '4 — poste doble' },
+                        { valor: 2, rotulo: '2 — sin juntar (la plancha queda al aire)' },
+                        { valor: 3, rotulo: '3 — dos juntos en un muro' },
+                        { valor: 4, rotulo: '4 — dos juntos en cada muro' },
                     ]}
-                    nota="En el encuentro ya hay dos pies derechos, uno por cada muro, pero ninguno deja cara libre hacia adentro para clavar el canto de la plancha. Las que se elijan de más se agregan."
+                    nota="En el encuentro ya hay dos pies derechos, uno por muro, pero son perpendiculares entre sí: ninguno deja cara donde clavar el canto de la plancha, que queda al aire. Poner dos juntos resuelve eso."
                 />
 
                 <CampoMedida
