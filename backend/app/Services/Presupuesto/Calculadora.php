@@ -118,12 +118,13 @@ final class Calculadora
      */
     private function madera(PlanCorte $plan, Despiece $despiece, string $nombre): MaterialRequerido
     {
-        $largoM = $plan->largoComercial->metros();
-
         return new MaterialRequerido(
             clave: 'madera',
             nombre: $nombre,
-            unidadVenta: sprintf('tira %.2f m', $largoM),
+            // Sólo "tira": el largo ya va en el nombre del material, y dejarlo
+            // también acá daba "80 tira 3.20 m", que no concuerda en plural ni se
+            // puede arreglar sin inventar reglas de gramática.
+            unidadVenta: 'tira',
             magnitud: $despiece->metrosLinealesTotales(),
             unidadMagnitud: 'ml',
             cantidad: (float) $plan->tirasNetas(),

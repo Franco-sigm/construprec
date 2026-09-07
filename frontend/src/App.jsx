@@ -9,6 +9,7 @@ import ListaMateriales from './componentes/ListaMateriales';
 import Panel from './componentes/Panel';
 import PanelConfiguracion from './componentes/PanelConfiguracion';
 import PlanoIsometrico from './componentes/PlanoIsometrico';
+import Presupuesto from './componentes/Presupuesto';
 
 const HOY = new Date().toISOString().slice(0, 10);
 
@@ -93,6 +94,10 @@ function paraLaApi(cara) {
 
 export default function App() {
     const [seccion, setSeccion] = useState(seccionDelHash);
+    // El panel derecho muestra el plano o el presupuesto ya desglosado. Se cambia
+    // sin salir de la pantalla, para poder ajustar un precio y ver el documento
+    // moverse en el mismo golpe de vista.
+    const [vista, setVista] = useState('plano');
     const [catalogo, setCatalogo] = useState(null);
     const [planta, setPlanta] = useState(PLANTA_INICIAL);
     const [config, setConfig] = useState(CONFIG_INICIAL);
@@ -310,14 +315,31 @@ export default function App() {
                                 precios={precios}
                                 onPrecio={(clave, valor) => setPrecios((p) => ({ ...p, [clave]: valor }))}
                             />
-                            <Boton principal disabled={faltantes > 0 || materiales.length === 0}>
-                                {faltantes > 0 ? `Faltan ${faltantes} precios` : 'Generar informe'}
+                            <Boton
+                                principal
+                                disabled={materiales.length === 0}
+                                onClick={() => setVista(vista === 'informe' ? 'plano' : 'informe')}
+                            >
+                                {vista === 'informe'
+                                    ? 'Volver al plano'
+                                    : faltantes > 0
+                                        ? `Ver presupuesto (faltan ${faltantes} precios)`
+                                        : 'Ver presupuesto'}
                             </Boton>
                         </>
                     )}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0 }}>
+                    {vista === 'informe' && resultado ? (
+                        <Presupuesto
+                            materiales={materiales}
+                            precios={precios}
+                            obra={resultado.obra}
+                            corte={resultado.corte}
+                            proyecto={`${planta.largo} × ${planta.ancho} × ${planta.alto} ${planta.unidad}`}
+                        />
+                    ) : (
                     <Panel
                         veta=""
                         style={{
@@ -346,8 +368,9 @@ export default function App() {
                             filasCadenetas={resultado?.tabiqueria?.filas_cadenetas ?? 0}
                         />
                     </Panel>
+                    )}
 
-                    {resultado && (
+                    {resultado && vista === 'plano' && (
                         <Panel className="veta" style={{ display: 'flex', flexWrap: 'wrap', gap: 18, justifyContent: 'space-around' }}>
                             {[
                                 ['Superficie neta', `${resultado.obra.superficie_neta_m2.toFixed(2)} m²`],

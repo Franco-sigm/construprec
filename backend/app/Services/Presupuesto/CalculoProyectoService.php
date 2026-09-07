@@ -53,8 +53,8 @@ final class CalculoProyectoService
             config: $tabiqueria->aDominio(),
             capas: $proyecto->capas->map(fn (ProyectoCapa $c) => $c->aDominio())->all(),
             nombreMadera: $escuadria !== null
-                ? sprintf('Pino %s %.2f m', $escuadria->descripcion(), $largoM)
-                : sprintf('Madera de tabiquería %.2f m', $largoM),
+                ? sprintf('Pino %s %s m', $escuadria->descripcion(), number_format($largoM, 2, ',', '.'))
+                : sprintf('Madera de tabiquería %s m', number_format($largoM, 2, ',', '.')),
             // La clave lleva el id de la capa y no su posición: un proyecto puede
             // tener dos capas del mismo tipo y el formulario de precios tiene que
             // poder distinguirlas.

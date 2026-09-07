@@ -10,8 +10,8 @@ it('deduce la madera como un solo material, no como siete', function () {
     $calculo = calcular(proyectoDePrueba());
 
     expect($calculo->materiales)->toHaveCount(1)
-        ->and($calculo->materiales[0]->nombre)->toBe('Pino 2x3 seco cepillado 3.20 m')
-        ->and($calculo->materiales[0]->unidadVenta)->toBe('tira 3.20 m')
+        ->and($calculo->materiales[0]->nombre)->toBe('Pino 2x3 seco cepillado 3,20 m')
+        ->and($calculo->materiales[0]->unidadVenta)->toBe('tira')
         ->and($calculo->materiales[0]->esEstructura())->toBeTrue();
 });
 

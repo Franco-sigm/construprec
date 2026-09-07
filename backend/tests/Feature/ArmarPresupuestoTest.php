@@ -77,8 +77,8 @@ describe('el presupuesto completo', function () {
         $p = armar([4250, 18990, 45900]);
         $linea = $p->lineas->first();
 
-        expect($linea->nombre_material)->toBe('Pino 2x3 seco cepillado 3.20 m')
-            ->and($linea->unidad_venta)->toBe('tira 3.20 m')
+        expect($linea->nombre_material)->toBe('Pino 2x3 seco cepillado 3,20 m')
+            ->and($linea->unidad_venta)->toBe('tira')
             ->and((float) $linea->precio_unitario)->toBe(4250.0)
             ->and($linea->origen)->toBe(PresupuestoLinea::ORIGEN_ESTRUCTURA)
             ->and($linea->detalle)->toHaveKey('corte');

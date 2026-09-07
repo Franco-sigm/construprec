@@ -66,7 +66,7 @@ class CalculoController extends Controller
             caras: $caras,
             config: $config,
             capas: $capas,
-            nombreMadera: sprintf('Pino %s %.2f m', $escuadria->descripcion(), $largoComercial / 1000),
+            nombreMadera: sprintf('Pino %s %s m', $escuadria->descripcion(), number_format($largoComercial / 1000, 2, ',', '.')),
             clavesCapa: $claves,
             // Un contorno cerrado tiene tantos encuentros como muros: cuatro caras
             // de una planta rectangular dan cuatro esquinas.
@@ -82,6 +82,16 @@ class CalculoController extends Controller
                 'cantidad_comprar' => $m->cantidadComprar,
                 'origen' => $m->origen,
                 'merma_pct' => $m->mermaPct,
+
+                // Sobre qué se calculó: los metros cuadrados que hay que cubrir
+                // en una capa, los metros lineales de madera en la estructura. Va
+                // al primer nivel y no enterrado en el detalle porque el informe
+                // lo muestra en cada línea: "17 planchas para cubrir 44 m2" dice
+                // de dónde salió el número; "17 planchas" solo, no.
+                'magnitud' => $m->magnitud,
+                'unidad_magnitud' => $m->unidadMagnitud,
+                'rendimiento_m2' => $m->detalle['rendimiento_m2'] ?? null,
+                'sobrante_m2' => $m->detalle['sobrante_m2'] ?? null,
             ], $calculo->materiales),
 
             'obra' => [

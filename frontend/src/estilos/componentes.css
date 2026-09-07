@@ -416,3 +416,99 @@
     opacity: 0.4;
     cursor: not-allowed;
 }
+
+/* ---------------------------------------------------- el presupuesto */
+
+.informe {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: var(--papel);
+    border: 2px solid var(--madera-borde);
+    border-radius: var(--radio-chico);
+    box-shadow: inset 0 2px 6px rgba(70, 40, 12, 0.25);
+    overflow: auto;
+}
+
+.partida {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--papel-linea);
+}
+
+.partida:nth-child(even) { background: #f1e4cd; }
+
+.partida__titulo {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+    font-family: var(--fuente-titulo);
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--tinta);
+}
+
+/*
+ * Los datos de cada partida como pares rótulo/valor.
+ *
+ * Es una <dl> y no una tabla porque no son filas comparables entre sí: son
+ * atributos de un mismo material, y un lector de pantalla los anuncia emparejados.
+ */
+.partida__datos {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 14px;
+    margin: 0;
+    font-size: 0.87rem;
+}
+
+.partida__datos dt {
+    color: var(--tinta-suave);
+}
+
+.partida__datos dd {
+    margin: 0;
+    font-family: var(--fuente-titulo);
+    font-weight: 500;
+    color: var(--tinta);
+}
+
+.partida__subtotal {
+    font-family: var(--fuente-titulo);
+    font-size: 1.05rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Números alineados a la derecha por su unidad, que es como se revisa una suma. */
+.cifra {
+    font-variant-numeric: tabular-nums;
+}
+
+.informe__total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px;
+    border-top: 3px double var(--madera-borde);
+    background: #e9dcc0;
+    font-family: var(--fuente-titulo);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.informe__total strong {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.informe__aviso {
+    padding: 10px 14px;
+    background: #f7efd8;
+    border-bottom: 1px solid var(--papel-linea);
+    font-size: 0.85rem;
+    font-style: italic;
+    color: var(--tinta-suave);
+}
