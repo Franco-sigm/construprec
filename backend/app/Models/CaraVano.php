@@ -20,9 +20,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $alto_mm
  * @property int $antepecho_mm
  * @property int $cantidad
+ * @property int|null $desde_tramo
  * @property string $unidad_ingreso
  */
-#[Fillable(['cara_id', 'tipo', 'ancho_mm', 'alto_mm', 'antepecho_mm', 'cantidad', 'unidad_ingreso'])]
+#[Fillable([
+    'cara_id', 'tipo', 'ancho_mm', 'alto_mm', 'antepecho_mm', 'cantidad',
+    'desde_tramo', 'unidad_ingreso',
+])]
 class CaraVano extends Model
 {
     protected function casts(): array
@@ -33,6 +37,7 @@ class CaraVano extends Model
             'alto_mm' => 'integer',
             'antepecho_mm' => 'integer',
             'cantidad' => 'integer',
+            'desde_tramo' => 'integer',
         ];
     }
 
@@ -50,6 +55,7 @@ class CaraVano extends Model
             alto: Medida::desdeMm($this->alto_mm, $this->unidad_ingreso),
             antepecho: Medida::desdeMm($this->antepecho_mm, $this->unidad_ingreso),
             cantidad: $this->cantidad,
+            desdeTramo: $this->desde_tramo,
         );
     }
 }

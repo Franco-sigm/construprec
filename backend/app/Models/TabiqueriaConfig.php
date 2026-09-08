@@ -29,13 +29,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $escuadria_dintel_id
  * @property numeric-string $merma_pct
  * @property int $filas_cadenetas
+ * @property int $piezas_por_esquina
  * @property-read Escuadria|null $escuadriaDintel
  */
 #[Fillable([
     'proyecto_id', 'escuadria_id', 'escuadria_ancho_mm', 'escuadria_alto_mm',
     'largo_comercial_mm', 'separacion_mm', 'separacion_unidad_ingreso',
     'solera_inferior', 'soleras_superiores', 'escuadria_dintel_id',
-    'merma_pct', 'filas_cadenetas',
+    'merma_pct', 'filas_cadenetas', 'piezas_por_esquina',
 ])]
 class TabiqueriaConfig extends Model
 {
@@ -50,6 +51,7 @@ class TabiqueriaConfig extends Model
             'soleras_superiores' => 'integer',
             'merma_pct' => 'decimal:2',
             'filas_cadenetas' => 'integer',
+            'piezas_por_esquina' => 'integer',
         ];
     }
 
@@ -83,6 +85,7 @@ class TabiqueriaConfig extends Model
             escuadriaDintelAlto: $this->escuadriaDintel?->alto(),
             mermaPct: (float) $this->merma_pct,
             filasCadenetas: $this->filas_cadenetas,
+            piezasPorEsquina: $this->piezas_por_esquina,
         );
     }
 }

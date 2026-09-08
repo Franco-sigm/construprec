@@ -133,6 +133,7 @@ final class GuardarProyectoService
             'escuadria_dintel_id' => $datos['escuadria_dintel_id'] ?? null,
             'merma_pct' => $datos['merma_pct'] ?? 0,
             'filas_cadenetas' => $datos['filas_cadenetas'] ?? 1,
+            'piezas_por_esquina' => $datos['piezas_por_esquina'] ?? 3,
         ]);
     }
 
@@ -161,6 +162,9 @@ final class GuardarProyectoService
                     'alto_mm' => Medida::de($vano['alto'], $u)->mm,
                     'antepecho_mm' => Medida::de($vano['antepecho'] ?? 0, $u)->mm,
                     'cantidad' => $vano['cantidad'] ?? 1,
+                    // Sin esto, reabrir el proyecto devolvía los vanos repartidos
+                    // automáticamente y había que volver a ubicarlos uno por uno.
+                    'desde_tramo' => $vano['desde_tramo'] ?? null,
                     'unidad_ingreso' => $u,
                 ]);
             }

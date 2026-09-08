@@ -304,3 +304,52 @@ describe('las claves de precio son las mismas al calcular y al emitir', function
         expect($r->json('lineas'))->toHaveCount(count($precios));
     });
 });
+
+describe('nada de lo que el usuario decide se pierde al guardar', function () {
+    /*
+     * Cada campo que el asistente deja elegir tiene que volver igual al reabrir.
+     * Los que se perdían no daban error: el proyecto se guardaba, se reabría, y
+     * el trabajo de ubicar los vanos o elegir el refuerzo había desaparecido sin
+     * que nada lo avisara.
+     */
+    it('guarda la posición de cada vano en la trama', function () {
+        Sanctum::actingAs(User::factory()->create());
+
+        $datos = payloadProyecto();
+        $datos['caras'][0]['vanos'][0]['desde_tramo'] = 7;
+
+        $id = $this->postJson('/api/proyectos', $datos)->json('id');
+
+        expect($this->getJson("/api/proyectos/{$id}")->json('caras.0.vanos.0.desde_tramo'))->toBe(7);
+    });
+
+    it('guarda el armado de la esquina', function () {
+        Sanctum::actingAs(User::factory()->create());
+
+        $datos = payloadProyecto();
+        $datos['tabiqueria']['piezas_por_esquina'] = 4;
+
+        $id = $this->postJson('/api/proyectos', $datos)->json('id');
+
+        expect($this->getJson("/api/proyectos/{$id}")->json('tabiqueria.piezas_por_esquina'))->toBe(4);
+    });
+
+    it('el proyecto reabierto calcula lo mismo que antes de guardarlo', function () {
+        // Es la comprobación de fondo: si algún dato se perdiera, las cantidades
+        // cambiarían al reabrir y el presupuesto dejaría de cuadrar.
+        Sanctum::actingAs(User::factory()->create());
+
+        $datos = conTechumbre();
+        $datos['tabiqueria']['piezas_por_esquina'] = 4;
+        $datos['caras'][0]['vanos'][0]['desde_tramo'] = 3;
+
+        $antes = $this->postJson('/api/calculos', $datos)->json();
+        $id = $this->postJson('/api/proyectos', $datos)->json('id');
+
+        $despues = app(CalculoProyectoService::class)->para(Proyecto::findOrFail($id));
+
+        expect($despues->planCorte->tirasAComprar())->toBe($antes['corte']['tiras_a_comprar'])
+            ->and($despues->despiece->superficieNetaM2())->toBe((float) $antes['obra']['superficie_neta_m2'])
+            ->and($despues->planCorteTechumbre?->tirasAComprar())->toBe($antes['techumbre']['corte']['tiras_a_comprar']);
+    });
+});

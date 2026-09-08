@@ -7,7 +7,9 @@ import {
     descargarPdf,
     emitirPresupuesto,
     entrar,
+    guardarProyectoAbierto,
     guardarToken,
+    leerProyectoAbierto,
     leerToken,
     listarProyectos,
     obtenerCatalogo,
@@ -104,7 +106,7 @@ function desdeApi(proyecto) {
             antepecho: desdeMm(v.antepecho_mm, v.unidad),
             cantidad: v.cantidad,
             unidad: v.unidad,
-            desdeTramo: null,
+            desdeTramo: v.desde_tramo ?? null,
         }));
     });
 
@@ -141,7 +143,7 @@ function desdeApi(proyecto) {
             filasCadenetas: t.filas_cadenetas,
             solerasSuperiores: t.soleras_superiores,
             mermaPct: String(t.merma_pct),
-            piezasPorEsquina: 3,
+            piezasPorEsquina: t.piezas_por_esquina ?? 3,
         },
         capas: Object.fromEntries(proyecto.capas.map((c) => [c.tipo, c.producto_capa_id])),
         vanos,
@@ -410,6 +412,7 @@ export default function App() {
         await salir().catch(() => {});
 
         guardarToken(null);
+        guardarProyectoAbierto(null);
         setUsuario(null);
         setProyectoId(null);
         setMios([]);
@@ -444,6 +447,7 @@ export default function App() {
                 : await crearProyecto(payload);
 
             setProyectoId(guardado.id);
+            guardarProyectoAbierto(guardado.id);
             setFirmaGuardada(JSON.stringify({ cuerpo, nombre }));
             listarProyectos().then((d) => setMios(d.proyectos)).catch(() => {});
         } catch (e) {
@@ -487,6 +491,7 @@ export default function App() {
             const datos = desdeApi(await abrirProyecto(id));
 
             setProyectoId(id);
+            guardarProyectoAbierto(id);
             setNombre(datos.nombre);
             setPlanta(datos.planta);
             setVanos(datos.vanos);
@@ -501,6 +506,21 @@ export default function App() {
             setError(e.message);
         }
     }, []);
+
+// Recupera el proyecto que estaba abierto al recargar la página. Sólo la
+    // primera vez tras entrar: después, cambiar de proyecto es cosa del usuario.
+    const yaRecupere = useRef(false);
+
+    useEffect(() => {
+        if (!usuario || !catalogo || yaRecupere.current) return;
+
+        const guardado = leerProyectoAbierto();
+
+        if (guardado) {
+            yaRecupere.current = true;
+            abrir(guardado);
+        }
+    }, [usuario, catalogo, abrir]);
 
     const materiales = useMemo(() => resultado?.materiales ?? [], [resultado]);
 

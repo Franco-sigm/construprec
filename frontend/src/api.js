@@ -27,6 +27,33 @@ export function guardarToken(token) {
     }
 }
 
+/**
+ * Recuerda qué proyecto estaba abierto.
+ *
+ * Sin esto, recargar la página devolvía el formulario a los valores por defecto
+ * aunque el proyecto estuviera guardado: parecía que se había perdido todo,
+ * cuando en realidad estaba en la base y había que ir a buscarlo al desplegable.
+ */
+const LLAVE_PROYECTO = 'construprec.proyecto';
+
+export function guardarProyectoAbierto(id) {
+    try {
+        if (id) localStorage.setItem(LLAVE_PROYECTO, String(id));
+        else localStorage.removeItem(LLAVE_PROYECTO);
+    } catch {
+        // Ventana privada: se pierde al cerrar la pestaña, que es lo de antes.
+    }
+}
+
+export function leerProyectoAbierto() {
+    try {
+        const v = localStorage.getItem(LLAVE_PROYECTO);
+        return v ? Number(v) : null;
+    } catch {
+        return null;
+    }
+}
+
 export function leerToken() {
     try {
         return localStorage.getItem(LLAVE_TOKEN);

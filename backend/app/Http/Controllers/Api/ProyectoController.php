@@ -109,6 +109,7 @@ class ProyectoController extends Controller
                 'solera_inferior' => $t->solera_inferior,
                 'soleras_superiores' => $t->soleras_superiores,
                 'filas_cadenetas' => $t->filas_cadenetas,
+                'piezas_por_esquina' => $t->piezas_por_esquina,
                 'merma_pct' => (float) $t->merma_pct,
             ],
             'caras' => $proyecto->caras->map(fn (ProyectoCara $cara) => [
@@ -123,9 +124,10 @@ class ProyectoController extends Controller
                     'alto_mm' => $v->alto_mm,
                     'antepecho_mm' => $v->antepecho_mm,
                     'cantidad' => $v->cantidad,
+                    'desde_tramo' => $v->desde_tramo,
                     'unidad' => $v->unidad_ingreso,
-                ]),
-            ]),
+                ])->all(),
+            ])->all(),
             'techumbre' => $techo === null ? null : [
                 'aguas' => $techo->aguas,
                 'luz_mm' => $techo->luz_mm,
