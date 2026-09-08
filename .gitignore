@@ -2,14 +2,20 @@
 node_modules/
 vendor/
 
-# Credenciales: nunca al repositorio, solo el .env.example versionado
+# Credenciales: nunca al repositorio, sólo las plantillas sin valores.
+# La negación va con comodín y no sólo para `.env.example`, porque también hay
+# `.env.production.example`, que documenta qué variables pide el hosting.
 .env
 .env.*
-!.env.example
+!.env*.example
 
 # Compilados del frontend
 dist/
 build/
+
+# Paquetes listos para subir al hosting. Se generan con scripts/empaquetar.sh y
+# pesan diez megas: se rehacen en un minuto y no tienen por qué versionarse.
+dist-despliegue/
 
 # Sistema operativo y editores
 .DS_Store

@@ -23,3 +23,21 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Defensa en profundidad.
+#
+# Si el document root queda bien apuntado a public/, nada de esto hace falta: el
+# .env y vendor/ no son alcanzables. Va igual porque un error de configuracion en
+# el panel es facil de cometer y silencioso, y aca cuesta cuatro lineas.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "no-referrer"
+</IfModule>
+
+# Sin listados de directorio: no hay razon para que se pueda recorrer el arbol.
+Options -Indexes
