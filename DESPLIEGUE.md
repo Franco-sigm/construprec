@@ -1,4 +1,4 @@
-# Desplegar en DirectAdmin
+b# Desplegar en DirectAdmin
 
 Para el hosting de **surcode.cl**: DirectAdmin sobre CloudLinux, servidor
 LiteSpeed, PHP 8.4.
@@ -34,6 +34,52 @@ En el panel, una vez por cada dominio:
 
 4. **Certificado SSL** en los dos dominios. La API se llama desde un sitio en
    HTTPS, así que si va en HTTP el navegador bloquea las peticiones.
+
+---
+
+## ¿Terminal o administrador de archivos?
+
+Se puede hacer casi todo subiendo carpetas comprimidas, como siempre. Pero con
+Laravel hay dos cosas que el administrador de archivos no resuelve bien.
+
+**Descomprimir `vendor/`.** Son unos 10.000 archivos. El extractor del navegador
+suele agotar el tiempo de espera a la mitad y deja el árbol incompleto sin
+avisar, lo que después se ve como errores de "clase no encontrada" que no llevan
+a ninguna parte. Por consola, `tar xzf` lo hace en segundos.
+
+**Los comandos posteriores.** Crear las tablas, cachear la configuración y crear
+el usuario no se hacen copiando archivos. La contraseña, en particular, se cifra
+en PHP: no sale de un INSERT.
+
+Comparado honestamente:
+
+| | Administrador de archivos | Consola |
+|---|---|---|
+| Subir el paquete | Igual de rápido | Igual (se sube por el mismo panel) |
+| Descomprimir | Lento y puede cortarse | Segundos |
+| Migrar y cachear | No se puede | Un comando |
+| Crear el usuario | No se puede | Un comando |
+| La primera vez | Familiar | Hay que aprender seis comandos |
+| Las siguientes | Igual de lento siempre | Mucho más rápido |
+
+**La primera vez la consola no es más simple; de ahí en adelante sí.** Y para
+esto no hay atajo real: sin ella quedan trabajos manuales que se olvidan.
+
+Para bajar la barrera, el repositorio trae `scripts/instalar-en-servidor.sh`, que
+hace migraciones, catálogo, permisos y cachés en **un solo comando**.
+
+### Dónde está la consola
+
+En DirectAdmin, según el plan:
+
+- **SSH**, en *Advanced Features → SSH Keys*, y se entra con un cliente
+  (`ssh usuario@surcode.cl`). Es lo mejor.
+- **Terminal del navegador**, si el panel la trae, en *Advanced Features →
+  Terminal*.
+
+Si no aparece ninguna, hay que pedírsela al proveedor. Sin consola queda el
+camino de importar el SQL por phpMyAdmin, que está más abajo, pero es más
+trabajo cada vez.
 
 ---
 
@@ -93,19 +139,40 @@ en cada despliegue y se olvida. Vale la pena insistir con las otras dos.
 
 ### Subir e instalar
 
+Subir el `.tar.gz` con el administrador de archivos del panel, a
+`/domains/api.construprec.surcode.cl/`. Después, en la consola:
+
 ```bash
 cd /domains/api.construprec.surcode.cl
-mkdir -p laravel && tar xzf ~/backend-AAAAMMDD-HHMM.tar.gz -C laravel
+mkdir -p laravel && tar xzf backend-AAAAMMDD-HHMM.tar.gz -C laravel
 cd laravel
+```
 
-cp .env.production.example .env
-nano .env          # base de datos, CORS_ORIGINS, APP_URL
+Subir también el `.env` (el que se preparó con los datos de la base) a esa misma
+carpeta `laravel/`. Y entonces:
 
-php artisan key:generate
-php artisan migrate --force
-php artisan db:seed --force          # monedas, escuadrías y catálogo
+```bash
+bash scripts/instalar-en-servidor.sh
 php artisan construprec:usuario      # pide la contraseña de forma oculta
 ```
+
+El script busca el PHP 8.4 correcto, arregla los permisos, corre las
+migraciones, carga el catálogo sólo si está vacío y rehace las cachés. Se puede
+volver a correr sin romper nada.
+
+Si prefieres hacerlo paso a paso:
+
+```bash
+chmod -R 755 storage bootstrap/cache
+php artisan migrate --force
+php artisan db:seed --force          # monedas, escuadrías y catálogo
+php artisan config:cache && php artisan route:cache && php artisan view:cache
+php artisan construprec:usuario
+```
+
+**No corras `php artisan key:generate`**: la APP_KEY ya viene en el `.env`.
+Regenerarla después de tener datos deja los tokens de sesión sin poder
+descifrarse.
 
 `--force` va porque Laravel pregunta antes de migrar en producción y por SSH esa
 pregunta puede quedar esperando sin que se note.
@@ -246,14 +313,14 @@ Si algo no responde, mirar en este orden:
 ```bash
 ./scripts/empaquetar.sh          # en local
 
-# en el servidor
+# en el servidor, tras subir el paquete nuevo
 cd /domains/api.construprec.surcode.cl/laravel
-php artisan down                 # avisa en vez de mostrar errores a medias
-tar xzf ~/backend-NUEVO.tar.gz
-php artisan migrate --force
-php artisan config:cache && php artisan route:cache && php artisan view:cache
-php artisan up
+tar xzf ../backend-NUEVO.tar.gz
+bash scripts/instalar-en-servidor.sh
 ```
+
+El script pone la aplicación en mantenimiento mientras toca la base y la vuelve
+a levantar al terminar, para que nadie vea datos a medias.
 
 El `.env` no se toca: el paquete lo excluye a propósito.
 
