@@ -22,6 +22,7 @@ import EditorVanos from './componentes/EditorVanos';
 import ListaMateriales from './componentes/ListaMateriales';
 import Panel from './componentes/Panel';
 import PanelConfiguracion from './componentes/PanelConfiguracion';
+import PanelTechumbre from './componentes/PanelTechumbre';
 import PlanoIsometrico from './componentes/PlanoIsometrico';
 import Presupuesto from './componentes/Presupuesto';
 
@@ -129,6 +130,23 @@ function desdeApi(proyecto) {
     };
 }
 
+/** Techumbre de arranque: dos aguas sobre la planta inicial. */
+const TECHO_INICIAL = {
+    aguas: 2,
+    luz: '4',
+    largo: '6',
+    alturaCumbrera: '1',
+    alero: '0.5',
+    unidad: 'm',
+    escuadriaId: null,
+    largoComercialMm: 4000,
+    separacionCerchas: '1',
+    separacionCostaneras: '1.1',
+    separacionUnidad: 'm',
+    mermaPct: '5',
+    cubiertaId: null,
+};
+
 /** Vanos de arranque, para que la pantalla muestre algo real desde el principio. */
 const VANOS_INICIALES = {
     0: [
@@ -200,6 +218,8 @@ export default function App() {
     const [config, setConfig] = useState(CONFIG_INICIAL);
     const [capas, setCapas] = useState({});
     const [vanos, setVanos] = useState(VANOS_INICIALES);
+    const [techo, setTecho] = useState(TECHO_INICIAL);
+    const [conTecho, setConTecho] = useState(false);
     const [resultado, setResultado] = useState(null);
     const [precios, setPrecios] = useState({});
     const [error, setError] = useState(null);
@@ -252,8 +272,23 @@ export default function App() {
                         : escuadria?.largos_comerciales_mm?.[0],
                 }));
                 setCapas(Object.fromEntries(
-                    Object.entries(datos.productos).map(([tipo, ps]) => [tipo, ps[0]?.id ?? null]),
+                    Object.entries(datos.productos)
+                        // La cubierta va en la techumbre, no entre las capas del muro.
+                        .filter(([tipo]) => tipo !== 'cubierta')
+                        .map(([tipo, ps]) => [tipo, ps[0]?.id ?? null]),
                 ));
+
+                // Para la cercha se propone la escuadría más gruesa disponible: es
+                // la que salva más luz y la que menos sorpresas da.
+                const gruesa = [...datos.escuadrias].sort(
+                    (a, b) => b.alto_real_mm - a.alto_real_mm,
+                )[0];
+
+                setTecho((t) => ({
+                    ...t,
+                    escuadriaId: gruesa?.id ?? null,
+                    cubiertaId: datos.productos.cubierta?.[0]?.id ?? null,
+                }));
             })
             .catch((e) => setError(e.message));
     }, []);
@@ -278,8 +313,30 @@ export default function App() {
             capas: Object.values(capas)
                 .filter(Boolean)
                 .map((id) => ({ producto_capa_id: Number(id), aplicacion: 'exterior' })),
+
+            ...(conTecho && techo.escuadriaId
+                ? {
+                    techumbre: {
+                        aguas: Number(techo.aguas),
+                        luz: Number(techo.luz) || 0,
+                        largo: Number(techo.largo) || 0,
+                        altura_cumbrera: Number(techo.alturaCumbrera) || 0,
+                        alero: Number(techo.alero) || 0,
+                        unidad: techo.unidad,
+                        escuadria_id: Number(techo.escuadriaId),
+                        largo_comercial_mm: Number(techo.largoComercialMm),
+                        separacion_cerchas: Number(techo.separacionCerchas) || 0,
+                        separacion_costaneras: Number(techo.separacionCostaneras) || 0,
+                        separacion_unidad: techo.separacionUnidad,
+                        merma_pct: Number(techo.mermaPct) || 0,
+                        capas: techo.cubiertaId
+                            ? [{ producto_capa_id: Number(techo.cubiertaId) }]
+                            : [],
+                    },
+                }
+                : {}),
         };
-    }, [caras, config, capas]);
+    }, [caras, config, capas, conTecho, techo]);
 
     // Si lo que hay en pantalla es lo mismo que se guardó la última vez. Se compara
     // una firma en vez de marcar "sin guardar" desde un efecto: un setState dentro
@@ -579,6 +636,17 @@ export default function App() {
                         />
                     )}
 
+                    {seccion === 'etapas' && catalogo && (
+                        <PanelTechumbre
+                            catalogo={catalogo}
+                            techo={techo}
+                            onTecho={(cambio) => setTecho((t) => ({ ...t, ...cambio }))}
+                            activa={conTecho}
+                            onActivar={setConTecho}
+                            resultado={resultado?.techumbre ?? null}
+                        />
+                    )}
+
                     {seccion === 'materiales' && (
                         <>
                             <ListaMateriales
@@ -654,6 +722,19 @@ export default function App() {
                                 (resultado?.caras ?? []).map((c, i) => [i, c.vanos]),
                             )}
                             filasCadenetas={resultado?.tabiqueria?.filas_cadenetas ?? 0}
+                            techo={
+                                conTecho && resultado?.techumbre
+                                    ? {
+                                        aguas: Number(techo.aguas),
+                                        alturaCumbrera: (Number(techo.alturaCumbrera) || 0) * { m: 1000, cm: 10, mm: 1, ft: 304.8, in: 25.4 }[techo.unidad],
+                                        alero: (Number(techo.alero) || 0) * { m: 1000, cm: 10, mm: 1, ft: 304.8, in: 25.4 }[techo.unidad],
+                                        separacionCerchas: (Number(techo.separacionCerchas) || 1)
+                                            * { m: 1000, cm: 10, mm: 1, ft: 304.8, in: 25.4 }[techo.separacionUnidad],
+                                        separacionCostaneras: (Number(techo.separacionCostaneras) || 1)
+                                            * { m: 1000, cm: 10, mm: 1, ft: 304.8, in: 25.4 }[techo.separacionUnidad],
+                                    }
+                                    : null
+                            }
                         />
                     </Panel>
                     )}
@@ -671,6 +752,14 @@ export default function App() {
                                 ['Recorte', `${resultado.corte.desperdicio_m.toFixed(1)} m`],
                                 ['Aserrín', `${resultado.corte.aserrin_m.toFixed(2)} m`],
                                 ['Pérdida real', `${resultado.corte.perdida_calculada_pct.toFixed(1)} %`],
+                                ...(resultado.techumbre
+                                    ? [
+                                        ['Pendiente', `${resultado.techumbre.pendiente_pct} %`],
+                                        ['Cerchas', resultado.techumbre.cerchas],
+                                        ['Faldón', `${resultado.techumbre.superficie_m2.toFixed(2)} m²`],
+                                        ['Tiras del techo', resultado.techumbre.corte.tiras_a_comprar],
+                                    ]
+                                    : []),
                             ].map(([rotulo, valor]) => (
                                 <div key={rotulo} style={{ textAlign: 'center' }}>
                                     <div className="campo__rotulo">{rotulo}</div>

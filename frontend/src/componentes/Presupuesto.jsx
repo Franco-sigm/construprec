@@ -17,6 +17,8 @@ const decimal = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maxim
 // dejaría en 0,59, que no es el número con que se calculó.
 const rinde = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 4 });
 
+const ROTULO_ETAPA = { muros: 'Muros', techumbre: 'Techumbre' };
+
 const ROTULO_MAGNITUD = {
     m2: 'Superficie a cubrir',
     ml: 'Madera necesaria',
@@ -91,6 +93,14 @@ function Partida({ material, precio }) {
     );
 }
 
+/** Suma de un grupo de partidas, con los precios que haya cargados. */
+function subtotalDe(partidas, precios) {
+    return partidas.reduce(
+        (suma, m) => suma + (Number(precios[m.clave]) || 0) * m.cantidad_comprar,
+        0,
+    );
+}
+
 export default function Presupuesto({
     materiales,
     precios,
@@ -103,9 +113,15 @@ export default function Presupuesto({
     motivoNoEmite,
     emitiendo,
 }) {
-    const total = materiales.reduce(
-        (suma, m) => suma + (Number(precios[m.clave]) || 0) * m.cantidad_comprar,
-        0,
+    const total = subtotalDe(materiales, precios);
+
+    // Se agrupa conservando el orden en que vinieron: muros primero, techumbre
+    // después, que es el orden en que se construye.
+    const etapas = Object.entries(
+        materiales.reduce((grupos, m) => {
+            (grupos[m.etapa ?? 'muros'] ??= []).push(m);
+            return grupos;
+        }, {}),
     );
 
     const sinPrecio = materiales.filter((m) => !precios[m.clave]);
@@ -113,7 +129,9 @@ export default function Presupuesto({
     return (
         <Panel style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
             <h2 className="titulo" style={{ margin: 0, fontSize: '1.2rem' }}>
-                Presupuesto de muros
+                {/* El título nombra lo que hay dentro: si sólo hay muros lo dice, y
+                    si ya entró el techo pasa a ser el presupuesto de la obra. */}
+                {etapas.length > 1 ? 'Presupuesto de la obra' : 'Presupuesto de muros'}
                 {proyecto && (
                     <span style={{ fontWeight: 400, textTransform: 'none', fontSize: '0.85rem' }}>
                         {' '}· {proyecto}
@@ -139,8 +157,26 @@ export default function Presupuesto({
                     </p>
                 )}
 
-                {materiales.map((material) => (
-                    <Partida key={material.clave} material={material} precio={precios[material.clave]} />
+                {/*
+                    Agrupado por etapa y con su subtotal. Una lista plana no deja
+                    comparar cuánto cuesta el techo aparte de los muros, que es
+                    justo la decisión que se toma mirando esto.
+                */}
+                {etapas.map(([etapa, partidas]) => (
+                    <div key={etapa}>
+                        {etapas.length > 1 && (
+                            <h3 className="etapa">
+                                <span>{ROTULO_ETAPA[etapa] ?? etapa}</span>
+                                <span className="cifra">
+                                    ${pesos.format(Math.round(subtotalDe(partidas, precios)))}
+                                </span>
+                            </h3>
+                        )}
+
+                        {partidas.map((material) => (
+                            <Partida key={material.clave} material={material} precio={precios[material.clave]} />
+                        ))}
+                    </div>
                 ))}
 
                 <div className="informe__total">
