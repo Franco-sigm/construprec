@@ -13,6 +13,11 @@ vendor/
 dist/
 build/
 
+# Volcado del esquema: se genera con `php artisan construprec:esquema-sql`.
+# No se versiona porque la fuente de verdad son las migraciones, y una copia
+# versionada terminaría quedando vieja sin que nadie lo note.
+backend/docs/esquema.sql
+
 # Paquetes listos para subir al hosting. Se generan con scripts/empaquetar.sh y
 # pesan diez megas: se rehacen en un minuto y no tienen por qué versionarse.
 dist-despliegue/

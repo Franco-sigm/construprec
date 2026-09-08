@@ -110,6 +110,33 @@ php artisan construprec:usuario      # pide la contraseña de forma oculta
 `--force` va porque Laravel pregunta antes de migrar en producción y por SSH esa
 pregunta puede quedar esperando sin que se note.
 
+#### Si el hosting no da consola
+
+Algunos planes de DirectAdmin sólo traen phpMyAdmin. En ese caso las tablas se
+crean importando un volcado, que se genera en tu máquina:
+
+```bash
+cd backend
+php artisan construprec:esquema-sql      # deja docs/esquema.sql
+```
+
+En phpMyAdmin: elegir la base y usar **Importar**. Crea las tablas y carga el
+catálogo —monedas, escuadrías y productos— dejando vacías las de usuarios,
+proyectos y presupuestos.
+
+El volcado incluye el registro de migraciones ya aplicadas. Sin él Laravel
+creería que no se ha migrado nada, y el día que sí haya consola un `migrate`
+intentaría crear tablas que ya existen.
+
+El archivo se regenera con ese comando y **no se versiona**: la fuente de verdad
+son las migraciones, y una copia guardada en el repositorio terminaría quedando
+vieja sin que nadie lo note. Hay que volver a generarlo cada vez que cambie el
+esquema.
+
+Lo que ese camino no resuelve es crear el usuario, porque la contraseña se cifra
+en PHP. Si no hay consola, hay que agregar temporalmente una ruta que lo cree y
+borrarla después.
+
 ### Permisos
 
 ```bash
