@@ -26,6 +26,7 @@ class GuardarProyectoRequest extends CalcularRequest
             'planta.largo_mm' => ['nullable', 'integer', 'min:1'],
             'planta.alto_mm' => ['nullable', 'integer', 'min:1'],
             'planta.unidad_ingreso' => ['nullable', 'string', 'max:4'],
+            'techumbre.escuadria_costanera_id' => ['nullable', 'integer', 'exists:escuadrias,id'],
         ];
     }
 

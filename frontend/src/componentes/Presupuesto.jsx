@@ -112,6 +112,7 @@ export default function Presupuesto({
     puedeEmitir,
     motivoNoEmite,
     emitiendo,
+    onDescargar,
 }) {
     const total = subtotalDe(materiales, precios);
 
@@ -186,12 +187,18 @@ export default function Presupuesto({
             </div>
 
             {emitido ? (
-                <p className="campo__nota" style={{ margin: 0 }}>
-                    Guardado como presupuesto <strong>#{emitido.id}</strong> del{' '}
-                    {emitido.fecha}, por ${pesos.format(Math.round(emitido.total))}. Queda
-                    con los precios de hoy congelados: si mañana suben, este documento no
-                    cambia.
-                </p>
+                <>
+                    <p className="campo__nota" style={{ margin: 0 }}>
+                        Guardado como presupuesto <strong>#{emitido.id}</strong> del{' '}
+                        {emitido.fecha}, por ${pesos.format(Math.round(emitido.total))}. Queda
+                        con los precios de hoy congelados: si mañana suben, este documento no
+                        cambia.
+                    </p>
+
+                    <Boton principal onClick={onDescargar}>
+                        Descargar en PDF
+                    </Boton>
+                </>
             ) : (
                 <>
                     <Boton

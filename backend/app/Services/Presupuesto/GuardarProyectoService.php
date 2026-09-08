@@ -9,6 +9,7 @@ use App\Models\Proyecto;
 use App\Models\ProyectoCapa;
 use App\Models\ProyectoCara;
 use App\Models\TabiqueriaConfig;
+use App\Models\TechumbreConfig;
 use App\Models\User;
 use App\Support\Medida;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,7 @@ final class GuardarProyectoService
             $proyecto->caras()->delete();
             $proyecto->capas()->delete();
             $proyecto->tabiqueria()->delete();
+            $proyecto->techumbre()->delete();
 
             $this->escribirHijos($proyecto, $datos);
 
@@ -75,7 +77,40 @@ final class GuardarProyectoService
     {
         $this->escribirTabiqueria($proyecto, $datos['tabiqueria']);
         $this->escribirCaras($proyecto, $datos['caras']);
-        $this->escribirCapas($proyecto, $datos['capas'] ?? []);
+        $this->escribirCapas($proyecto, $datos['capas'] ?? [], 'muros');
+
+        // La techumbre es opcional: un proyecto puede quedarse en los muros.
+        if (isset($datos['techumbre'])) {
+            $this->escribirTechumbre($proyecto, $datos['techumbre']);
+            $this->escribirCapas($proyecto, $datos['techumbre']['capas'] ?? [], 'techumbre');
+        }
+    }
+
+    private function escribirTechumbre(Proyecto $proyecto, array $datos): void
+    {
+        $u = $datos['unidad'] ?? 'm';
+        $us = $datos['separacion_unidad'] ?? $u;
+        $cercha = Escuadria::findOrFail($datos['escuadria_id']);
+
+        TechumbreConfig::create([
+            'proyecto_id' => $proyecto->id,
+            'aguas' => $datos['aguas'],
+            'luz_mm' => Medida::de($datos['luz'], $u)->mm,
+            'largo_mm' => Medida::de($datos['largo'], $u)->mm,
+            'altura_cumbrera_mm' => Medida::de($datos['altura_cumbrera'], $u)->mm,
+            'alero_mm' => Medida::de($datos['alero'] ?? 0, $u)->mm,
+            'unidad_ingreso' => $u,
+            'escuadria_id' => $cercha->id,
+            // Igual que en la tabiquería: se copia la medida real, no sólo el id.
+            'escuadria_ancho_mm' => $cercha->ancho_real_mm,
+            'escuadria_alto_mm' => $cercha->alto_real_mm,
+            'escuadria_costanera_id' => $datos['escuadria_costanera_id'] ?? null,
+            'largo_comercial_mm' => $datos['largo_comercial_mm'] ?? max($cercha->largos_comerciales_mm),
+            'separacion_cerchas_mm' => Medida::de($datos['separacion_cerchas'], $us)->mm,
+            'separacion_costaneras_mm' => Medida::de($datos['separacion_costaneras'], $us)->mm,
+            'separacion_unidad_ingreso' => $us,
+            'merma_pct' => $datos['merma_pct'] ?? 0,
+        ]);
     }
 
     private function escribirTabiqueria(Proyecto $proyecto, array $datos): void
@@ -132,13 +167,14 @@ final class GuardarProyectoService
         }
     }
 
-    private function escribirCapas(Proyecto $proyecto, array $capas): void
+    private function escribirCapas(Proyecto $proyecto, array $capas, string $etapa): void
     {
         foreach (array_values($capas) as $i => $capa) {
             $producto = ProductoCapa::findOrFail($capa['producto_capa_id']);
 
             ProyectoCapa::create([
                 'proyecto_id' => $proyecto->id,
+                'etapa' => $etapa,
                 'producto_capa_id' => $producto->id,
                 'tipo' => $producto->tipo,
                 'aplicacion' => $capa['aplicacion'] ?? 'exterior',

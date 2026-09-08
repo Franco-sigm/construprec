@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Escuadria;
+use App\Models\ProductoCapa;
 use App\Models\User;
 use Database\Seeders\EscuadriaSeeder;
 use Database\Seeders\MonedaSeeder;
@@ -186,5 +188,73 @@ describe('actualizar', function () {
         $this->assertDatabaseCount('cara_vanos', 0);
         $this->assertDatabaseCount('tabiqueria_configs', 1);
         $this->assertDatabaseHas('proyectos', ['id' => $id, 'nombre' => 'Sin ventanas']);
+    });
+});
+
+describe('la techumbre también se guarda', function () {
+    function conTechumbre(): array
+    {
+        $cercha = Escuadria::where('nominal', '3x4')->where('estado', 'seco_cepillado')->firstOrFail();
+        $zinc = ProductoCapa::where('nombre', 'like', 'Zinc acanalado%3,66%')->firstOrFail();
+
+        return payloadProyecto(['techumbre' => [
+            'aguas' => 2, 'luz' => 4, 'largo' => 6, 'altura_cumbrera' => 1, 'alero' => 0.5,
+            'unidad' => 'm', 'escuadria_id' => $cercha->id, 'largo_comercial_mm' => 4000,
+            'separacion_cerchas' => 1, 'separacion_costaneras' => 1.1, 'merma_pct' => 5,
+            'capas' => [['producto_capa_id' => $zinc->id]],
+        ]]);
+    }
+
+    it('un proyecto puede quedarse sin techo', function () {
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/proyectos', payloadProyecto())->assertStatus(201);
+
+        $this->assertDatabaseCount('techumbre_configs', 0);
+    });
+
+    it('guarda la techumbre y su cubierta', function () {
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/proyectos', conTechumbre())->assertStatus(201);
+
+        $this->assertDatabaseCount('techumbre_configs', 1);
+        $this->assertDatabaseHas('techumbre_configs', [
+            'aguas' => 2, 'luz_mm' => 4000, 'altura_cumbrera_mm' => 1000, 'alero_mm' => 500,
+        ]);
+        // La cubierta va marcada como de techumbre, no mezclada con las del muro.
+        $this->assertDatabaseHas('proyecto_capas', ['etapa' => 'techumbre']);
+        $this->assertDatabaseHas('proyecto_capas', ['etapa' => 'muros']);
+    });
+
+    it('copia la sección real de la cercha, no sólo su id', function () {
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/proyectos', conTechumbre());
+
+        $this->assertDatabaseHas('techumbre_configs', [
+            'escuadria_ancho_mm' => 65,
+            'escuadria_alto_mm' => 90,
+        ]);
+    });
+
+    it('devuelve la techumbre al reabrir el proyecto', function () {
+        Sanctum::actingAs(User::factory()->create());
+        $id = $this->postJson('/api/proyectos', conTechumbre())->json('id');
+
+        $r = $this->getJson("/api/proyectos/{$id}");
+
+        expect($r->json('techumbre.aguas'))->toBe(2)
+            ->and($r->json('techumbre.luz_mm'))->toBe(4000)
+            ->and($r->json('techumbre.capas'))->toHaveCount(1)
+            // Las capas del muro no traen la cubierta mezclada.
+            ->and($r->json('capas'))->toHaveCount(1);
+    });
+
+    it('quitar la techumbre la borra en vez de dejarla huérfana', function () {
+        Sanctum::actingAs(User::factory()->create());
+        $id = $this->postJson('/api/proyectos', conTechumbre())->json('id');
+
+        $this->putJson("/api/proyectos/{$id}", payloadProyecto())->assertOk();
+
+        $this->assertDatabaseCount('techumbre_configs', 0);
+        $this->assertDatabaseMissing('proyecto_capas', ['etapa' => 'techumbre']);
     });
 });

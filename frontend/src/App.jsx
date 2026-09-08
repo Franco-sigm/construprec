@@ -4,6 +4,7 @@ import {
     actualizarProyecto,
     calcular,
     crearProyecto,
+    descargarPdf,
     emitirPresupuesto,
     entrar,
     guardarToken,
@@ -107,8 +108,25 @@ function desdeApi(proyecto) {
         }));
     });
 
+    const t2 = proyecto.techumbre;
+
     return {
         nombre: proyecto.nombre,
+        techo: t2 === null || t2 === undefined ? null : {
+            aguas: t2.aguas,
+            luz: desdeMm(t2.luz_mm, t2.unidad),
+            largo: desdeMm(t2.largo_mm, t2.unidad),
+            alturaCumbrera: desdeMm(t2.altura_cumbrera_mm, t2.unidad),
+            alero: desdeMm(t2.alero_mm, t2.unidad),
+            unidad: t2.unidad,
+            escuadriaId: t2.escuadria_id,
+            largoComercialMm: t2.largo_comercial_mm,
+            separacionCerchas: desdeMm(t2.separacion_cerchas_mm, t2.separacion_unidad),
+            separacionCostaneras: desdeMm(t2.separacion_costaneras_mm, t2.separacion_unidad),
+            separacionUnidad: t2.separacion_unidad,
+            mermaPct: String(t2.merma_pct),
+            cubiertaId: t2.capas?.[0]?.producto_capa_id ?? null,
+        },
         planta: {
             largo: desdeMm(proyecto.planta?.largo_mm, u),
             ancho: desdeMm(proyecto.planta?.ancho_mm, u),
@@ -408,6 +426,8 @@ export default function App() {
         setGuardando(true);
 
         try {
+            // `cuerpo` ya trae la techumbre cuando la etapa está activa, así que
+            // guardar y calcular mandan exactamente lo mismo.
             const payload = {
                 ...cuerpo,
                 nombre,
@@ -472,6 +492,8 @@ export default function App() {
             setVanos(datos.vanos);
             if (datos.config) setConfig((c) => ({ ...c, ...datos.config }));
             setCapas((c) => ({ ...c, ...datos.capas }));
+            setConTecho(Boolean(datos.techo));
+            if (datos.techo) setTecho((t) => ({ ...t, ...datos.techo }));
             setPrecios({});
             setFirmaGuardada(null);
             setEmitido(null);
@@ -682,6 +704,7 @@ export default function App() {
                             onEmitir={emitir}
                             emitido={emitido}
                             emitiendo={guardando}
+                            onDescargar={() => descargarPdf(proyectoId, emitido.id).catch((e) => setError(e.message))}
                             puedeEmitir={Boolean(proyectoId) && estaGuardado && faltantes === 0}
                             motivoNoEmite={
                                 !usuario

@@ -85,8 +85,9 @@ class ProyectoController extends Controller
      */
     private function detalle(Proyecto $proyecto): array
     {
-        $proyecto->loadMissing(['caras.vanos', 'tabiqueria.escuadria', 'capas']);
+        $proyecto->loadMissing(['caras.vanos', 'tabiqueria.escuadria', 'capas', 'techumbre']);
         $t = $proyecto->tabiqueria;
+        $techo = $proyecto->techumbre;
 
         return [
             'id' => $proyecto->id,
@@ -125,13 +126,33 @@ class ProyectoController extends Controller
                     'unidad' => $v->unidad_ingreso,
                 ]),
             ]),
-            'capas' => $proyecto->capas->map(fn (ProyectoCapa $capa) => [
+            'techumbre' => $techo === null ? null : [
+                'aguas' => $techo->aguas,
+                'luz_mm' => $techo->luz_mm,
+                'largo_mm' => $techo->largo_mm,
+                'altura_cumbrera_mm' => $techo->altura_cumbrera_mm,
+                'alero_mm' => $techo->alero_mm,
+                'unidad' => $techo->unidad_ingreso,
+                'escuadria_id' => $techo->escuadria_id,
+                'escuadria_costanera_id' => $techo->escuadria_costanera_id,
+                'largo_comercial_mm' => $techo->largo_comercial_mm,
+                'separacion_cerchas_mm' => $techo->separacion_cerchas_mm,
+                'separacion_costaneras_mm' => $techo->separacion_costaneras_mm,
+                'separacion_unidad' => $techo->separacion_unidad_ingreso,
+                'merma_pct' => (float) $techo->merma_pct,
+                'capas' => $proyecto->capas->where('etapa', 'techumbre')->map(fn (ProyectoCapa $c) => [
+                    'producto_capa_id' => $c->producto_capa_id,
+                    'nombre' => $c->nombre,
+                ])->values(),
+            ],
+
+            'capas' => $proyecto->capas->where('etapa', 'muros')->map(fn (ProyectoCapa $capa) => [
                 'producto_capa_id' => $capa->producto_capa_id,
                 'tipo' => $capa->tipo->value,
                 'aplicacion' => $capa->aplicacion->value,
                 'nombre' => $capa->nombre,
                 'merma_pct' => (float) $capa->merma_pct,
-            ]),
+            ])->values(),
         ];
     }
 }

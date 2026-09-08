@@ -127,3 +127,37 @@ describe('emitir el presupuesto', function () {
         ])->assertStatus(404);
     });
 });
+
+describe('descargar el presupuesto en PDF', function () {
+    it('entrega un PDF con nombre que lo identifica', function () {
+        [$id, $precios] = proyectoGuardado();
+        $p = $this->postJson("/api/proyectos/{$id}/presupuestos", compact('precios') + ['moneda' => 'CLP'])->json();
+
+        $r = $this->get("/api/proyectos/{$id}/presupuestos/{$p['id']}/pdf");
+
+        $r->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        // El nombre lleva número y fecha: en una carpeta con varios, el que
+        // importa se distingue sin abrirlos.
+        expect($r->headers->get('content-disposition'))->toContain("presupuesto-{$p['id']}-");
+        expect($r->getContent())->toStartWith('%PDF');
+    });
+
+    it('no entrega el PDF de un proyecto ajeno', function () {
+        [$id, $precios] = proyectoGuardado();
+        $p = $this->postJson("/api/proyectos/{$id}/presupuestos", compact('precios') + ['moneda' => 'CLP'])->json();
+
+        Sanctum::actingAs(User::factory()->create());
+        $this->get("/api/proyectos/{$id}/presupuestos/{$p['id']}/pdf")->assertStatus(404);
+    });
+
+    it('exige token', function () {
+        [$id, $precios] = proyectoGuardado();
+        $p = $this->postJson("/api/proyectos/{$id}/presupuestos", compact('precios') + ['moneda' => 'CLP'])->json();
+
+        // Sin sesión: un presupuesto es un documento privado.
+        auth()->forgetGuards();
+        $this->getJson("/api/proyectos/{$id}/presupuestos/{$p['id']}/pdf")->assertStatus(401);
+    });
+});

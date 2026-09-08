@@ -105,6 +105,37 @@ export const actualizarProyecto = (id, cuerpo) => pedir(`/proyectos/${id}`, {
     body: JSON.stringify(cuerpo),
 });
 
+/**
+ * Descarga el PDF del presupuesto.
+ *
+ * Va por fetch y no por un enlace directo porque la ruta pide token en la
+ * cabecera, y un <a href> no puede mandarlo. Se recibe el archivo, se crea un
+ * enlace temporal y se dispara el guardado.
+ */
+export async function descargarPdf(proyectoId, presupuestoId) {
+    const respuesta = await fetch(
+        `${BASE}/proyectos/${proyectoId}/presupuestos/${presupuestoId}/pdf`,
+        { headers: { Accept: 'application/pdf', Authorization: `Bearer ${leerToken()}` } },
+    );
+
+    if (!respuesta.ok) {
+        throw new Error('No se pudo generar el PDF.');
+    }
+
+    const blob = await respuesta.blob();
+    const url = URL.createObjectURL(blob);
+
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = `presupuesto-${presupuestoId}.pdf`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+
+    // Sin esto el blob queda en memoria hasta que se cierre la pestaña.
+    URL.revokeObjectURL(url);
+}
+
 export const emitirPresupuesto = (proyectoId, precios, moneda = 'CLP') =>
     pedir(`/proyectos/${proyectoId}/presupuestos`, {
         method: 'POST',

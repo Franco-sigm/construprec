@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property int $id
  * @property int $proyecto_id
+ * @property string $etapa
+ * @property int|null $producto_capa_id
  * @property TipoCapa $tipo
  * @property AplicacionCapa $aplicacion
  * @property int|null $material_id
@@ -28,7 +30,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $orden
  */
 #[Fillable([
-    'proyecto_id', 'tipo', 'aplicacion', 'material_id', 'nombre', 'unidad_venta',
+    'proyecto_id', 'etapa', 'tipo', 'aplicacion', 'material_id', 'producto_capa_id',
+    'nombre', 'unidad_venta',
     'rendimiento', 'unidad_rendimiento', 'fraccionable', 'merma_pct',
     'descuenta_vanos', 'orden',
 ])]

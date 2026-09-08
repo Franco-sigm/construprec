@@ -31,6 +31,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property-read Collection<int, ProyectoCara> $caras
  * @property-read Collection<int, ProyectoCapa> $capas
  * @property-read TabiqueriaConfig|null $tabiqueria
+ * @property-read TechumbreConfig|null $techumbre
  */
 #[Fillable([
     'user_id', 'nombre', 'descripcion', 'sistema', 'alcance',
@@ -65,10 +66,27 @@ class Proyecto extends Model
         return $this->hasOne(TabiqueriaConfig::class);
     }
 
+    /** @return HasOne<TechumbreConfig, $this> */
+    public function techumbre(): HasOne
+    {
+        return $this->hasOne(TechumbreConfig::class);
+    }
+
     /** @return HasMany<ProyectoCapa, $this> */
     public function capas(): HasMany
     {
         return $this->hasMany(ProyectoCapa::class)->orderBy('orden');
+    }
+
+    /**
+     * Capas de una etapa. La cubierta va sobre el faldón, que mide más que la
+     * planta: mezclarla con las del muro la cotizaría sobre metros equivocados.
+     *
+     * @return HasMany<ProyectoCapa, $this>
+     */
+    public function capasDe(string $etapa): HasMany
+    {
+        return $this->capas()->where('etapa', $etapa);
     }
 
     /** @return HasMany<Presupuesto, $this> */

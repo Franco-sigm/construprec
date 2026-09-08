@@ -37,4 +37,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/proyectos/{proyecto}/presupuestos', [PresupuestoController::class, 'store']);
     Route::get('/proyectos/{proyecto}/presupuestos/{presupuesto}', [PresupuestoController::class, 'show']);
     Route::post('/proyectos/{proyecto}/presupuestos/{presupuesto}/emitir', [PresupuestoController::class, 'emitir']);
+    Route::get('/proyectos/{proyecto}/presupuestos/{presupuesto}/pdf', [PresupuestoController::class, 'pdf']);
 });

@@ -165,7 +165,10 @@ final class Calculadora
     private function madera(PlanCorte $plan, Despiece $despiece, string $nombre, string $etapa = 'muros'): MaterialRequerido
     {
         return new MaterialRequerido(
-            clave: 'madera',
+            // La clave lleva la etapa. Los muros y el techo compran madera los dos,
+            // pero de escuadría y largo distintos: con la misma clave el formulario
+            // de precios no podría separarlas y una pisaría a la otra.
+            clave: $etapa === 'muros' ? 'madera' : 'madera_'.$etapa,
             nombre: $nombre,
             // Sólo "tira": el largo ya va en el nombre del material, y dejarlo
             // también acá daba "80 tira 3.20 m", que no concuerda en plural ni se
