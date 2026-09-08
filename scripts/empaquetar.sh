@@ -26,20 +26,37 @@ cd "$RAIZ/backend"
 # en cada petición.
 composer install --no-dev --optimize-autoloader --no-interaction --quiet
 
+# El script de instalación vive en la raíz del repositorio, pero el paquete se
+# arma desde backend/: hay que copiarlo dentro o en el servidor no existe.
+mkdir -p scripts
+cp "$RAIZ/scripts/instalar-en-servidor.sh" scripts/
+
 # El .env, los tests y las herramientas no viajan. El .env del servidor es otro
-# y se escribe allá una sola vez.
+# y se escribe allá una sola vez. Tampoco viajan los archivos de desarrollo del
+# frontend que Laravel trae de fábrica y este proyecto no usa: el frontend vive
+# aparte, con su propio package.json.
 tar czf "$SALIDA/backend-$FECHA.tar.gz" \
     --exclude='.env' \
     --exclude='.env.*' \
     --exclude='tests' \
     --exclude='.git' \
+    --exclude='docs' \
     --exclude='storage/logs/*' \
     --exclude='storage/framework/cache/data/*' \
     --exclude='storage/framework/sessions/*' \
     --exclude='storage/framework/views/*' \
     --exclude='phpstan.neon' \
     --exclude='phpunit.xml' \
+    --exclude='package.json' \
+    --exclude='package-lock.json' \
+    --exclude='vite.config.js' \
+    --exclude='CLAUDE.md' \
+    --exclude='.editorconfig' \
+    --exclude='.npmrc' \
+    --exclude='.gitattributes' \
     .
+
+rm -rf scripts
 
 # Se devuelven las dependencias de desarrollo: si no, la próxima corrida de
 # tests en local falla y no se entiende por qué.

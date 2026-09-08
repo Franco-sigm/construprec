@@ -1,4 +1,4 @@
-b# Desplegar en DirectAdmin
+# Desplegar en DirectAdmin
 
 Para el hosting de **surcode.cl**: DirectAdmin sobre CloudLinux, servidor
 LiteSpeed, PHP 8.4.
@@ -272,18 +272,24 @@ despliegue tarda en verse.
 En *Cron Jobs* del panel, una entrada:
 
 ```
-* * * * * /usr/local/php84/bin/php /domains/api.construprec.surcode.cl/laravel/artisan schedule:run >> /dev/null 2>&1
+* * * * * /opt/alt/php84/usr/bin/php /home/surcodec/domains/api.construprec.surcode.cl/laravel/artisan schedule:run >> /dev/null 2>&1
 ```
 
-**La ruta completa al binario de PHP, no `php` a secas.** El PHP del cron suele
-ser una versión distinta a la del sitio, y con la equivocada el comando falla en
-silencio. La ruta exacta se confirma con `which php84` o mirando el PHP Selector.
+**La ruta completa al binario, no `php` a secas.** El cron no hereda tu `PATH`,
+así que `php` puede no existir ahí o ser otra versión, y el comando falla en
+silencio.
+
+En CloudLinux las versiones viven en `/opt/alt/phpXX/usr/bin/php`. Ojo con que
+`which php` engaña: devuelve algo como `/usr/local/php81/bin/php`, que es un
+enlace que el PHP Selector apunta a la versión elegida. La ruta real se ve con
+`readlink -f $(which php)`, y conviene usar esa: no cambia si alguien mueve el
+selector.
 
 Hoy no hay nada programado. Cuando lo haya —actualizar tasas de cambio, por
 ejemplo— y si se usan colas, va además:
 
 ```
-*/5 * * * * /usr/local/php84/bin/php /domains/.../artisan queue:work --stop-when-empty
+*/5 * * * * /opt/alt/php84/usr/bin/php /home/surcodec/domains/api.construprec.surcode.cl/laravel/artisan queue:work --stop-when-empty
 ```
 
 Con `--stop-when-empty` porque no hay proceso supervisado: el worker vacía la

@@ -17,7 +17,10 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 # consola: en CloudLinux la consola suele traer una versión más vieja. Se busca
 # el 8.4 y se avisa si no aparece, en vez de fallar a la mitad con un error de
 # sintaxis incomprensible.
-for candidato in /usr/local/php84/bin/php /usr/local/bin/php84 php84 php; do
+# En CloudLinux las versiones viven en /opt/alt/phpXX. El `php` del PATH suele
+# ser un enlace que el PHP Selector apunta a la elegida, así que la ruta directa
+# es más fiable: no cambia si alguien mueve el selector.
+for candidato in /opt/alt/php84/usr/bin/php /usr/local/php84/bin/php /usr/local/bin/php84 php84 php; do
     if command -v "$candidato" >/dev/null 2>&1; then
         VERSION="$("$candidato" -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || echo "0.0")"
         if [ "${VERSION%%.*}" -ge 8 ] && [ "${VERSION#*.}" -ge 4 ]; then
