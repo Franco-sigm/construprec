@@ -1,52 +1,21 @@
 # Configuración del frontend en LiteSpeed (DirectAdmin).
 #
-# Este archivo se copia tal cual al build: Vite pasa todo lo que hay en public/
-# a dist/ sin tocarlo.
+# Deliberadamente mínima. La versión anterior traía cabeceras de seguridad,
+# compresión y reglas de caché, y LiteSpeed la rechazaba entera: el sitio
+# respondía 404 hasta quitar el archivo. Un .htaccess que el servidor no acepta
+# no falla en la línea problemática, falla completo.
+#
+# Se agregan bloques de a uno y se comprueba que el sitio siga en pie.
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Todo lo que no sea un archivo real va a index.html.
+    # Todo lo que no exista como archivo o carpeta va a index.html.
     #
-    # La aplicación usa el hash de la URL para sus pestañas, así que hoy no habría
-    # rutas que reescribir. Va igual porque el día que se usen rutas de verdad,
-    # entrar directo a una daría 404 y el error no diría por qué.
+    # La aplicación usa el hash de la URL para sus pestañas, así que hoy no hay
+    # rutas que reescribir y esto no hace falta. Va para el día que sí las haya:
+    # sin la regla, entrar directo a una daría 404 sin explicar por qué.
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^ index.html [L]
+    RewriteRule . /index.html [L]
 </IfModule>
-
-<IfModule mod_headers.c>
-    # El navegador no debe adivinar el tipo de un archivo: si un .txt subido por
-    # alguien se interpreta como HTML, ahí hay un agujero.
-    Header always set X-Content-Type-Options "nosniff"
-
-    # No dejar que el sitio se cargue dentro de un iframe ajeno.
-    Header always set X-Frame-Options "SAMEORIGIN"
-
-    # Al salir del sitio no se filtra la ruta completa que se estaba mirando.
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
-
-    # Los archivos con hash en el nombre no cambian nunca: si cambia el contenido,
-    # cambia el nombre. Se pueden cachear para siempre sin arriesgar servir una
-    # versión vieja.
-    <FilesMatch "\.(js|css|woff2?|png|svg|jpg|webp)$">
-        Header set Cache-Control "public, max-age=31536000, immutable"
-    </FilesMatch>
-
-    # El index no lleva hash: es lo que apunta a la versión nueva, así que se
-    # revalida siempre. Sin esto, un despliegue tarda en verse.
-    <FilesMatch "^index\.html$">
-        Header set Cache-Control "no-cache, must-revalidate"
-    </FilesMatch>
-</IfModule>
-
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
-</IfModule>
-
-# El .env del frontend lleva la URL de la API y nada más, pero no tiene por qué
-# ser legible desde afuera.
-<FilesMatch "^\.env">
-    Require all denied
-</FilesMatch>

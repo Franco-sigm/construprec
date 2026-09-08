@@ -1,8 +1,9 @@
 <?php
 
 use App\Models\Presupuesto;
-use App\Models\ProyectoCapa;
+use App\Models\Proyecto;
 use App\Models\User;
+use App\Services\Presupuesto\CalculoProyectoService;
 use Database\Seeders\EscuadriaSeeder;
 use Database\Seeders\MonedaSeeder;
 use Database\Seeders\ProductoCapaSeeder;
@@ -25,9 +26,16 @@ beforeEach(function () {
 function proyectoGuardado(): array
 {
     $id = test()->postJson('/api/proyectos', payloadProyecto())->json('id');
-    $capa = ProyectoCapa::where('proyecto_id', $id)->firstOrFail();
 
-    return [$id, ['madera' => 4250, "capa_{$capa->id}" => 18990]];
+    // Las claves se piden al cálculo en vez de construirlas a mano. Escribir el
+    // formato acá lo duplica, y una copia en los tests deja de detectar
+    // justamente el fallo que importa: que la clave del formulario y la de la
+    // emisión dejen de coincidir.
+    $precios = collect(app(CalculoProyectoService::class)->para(Proyecto::findOrFail($id))->claves())
+        ->mapWithKeys(fn (string $clave) => [$clave => $clave === 'madera' ? 4250 : 18990])
+        ->all();
+
+    return [$id, $precios];
 }
 
 describe('emitir el presupuesto', function () {
@@ -58,13 +66,9 @@ describe('emitir el presupuesto', function () {
     });
 
     it('cada línea guarda de dónde salió su cantidad', function () {
-        [$id] = proyectoGuardado();
-        $capaId = ProyectoCapa::where('proyecto_id', $id)->firstOrFail()->id;
+        [$id, $precios] = proyectoGuardado();
 
-        $r = $this->postJson("/api/proyectos/{$id}/presupuestos", [
-            'precios' => ['madera' => 4250, "capa_{$capaId}" => 18990],
-            'moneda' => 'CLP',
-        ]);
+        $r = $this->postJson("/api/proyectos/{$id}/presupuestos", compact('precios') + ['moneda' => 'CLP']);
 
         $osb = collect($r->json('lineas'))->firstWhere('unidad_venta', 'plancha');
 
@@ -77,13 +81,12 @@ describe('emitir el presupuesto', function () {
     });
 
     it('emitirlo lo vuelve un documento histórico', function () {
-        [$id] = proyectoGuardado();
-        $capaId = ProyectoCapa::where('proyecto_id', $id)->firstOrFail()->id;
+        [$id, $precios] = proyectoGuardado();
 
-        $presupuesto = $this->postJson("/api/proyectos/{$id}/presupuestos", [
-            'precios' => ['madera' => 4250, "capa_{$capaId}" => 18990],
-            'moneda' => 'CLP',
-        ])->json();
+        $presupuesto = $this->postJson(
+            "/api/proyectos/{$id}/presupuestos",
+            compact('precios') + ['moneda' => 'CLP'],
+        )->json();
 
         $r = $this->postJson("/api/proyectos/{$id}/presupuestos/{$presupuesto['id']}/emitir");
 
@@ -94,12 +97,11 @@ describe('emitir el presupuesto', function () {
     it('cada cálculo emite uno nuevo en vez de pisar el anterior', function () {
         // Son fotografías: el que el cliente ya tiene en la mano no puede cambiar
         // porque hoy se cotizó distinto.
-        [$id] = proyectoGuardado();
-        $capaId = ProyectoCapa::where('proyecto_id', $id)->firstOrFail()->id;
+        [$id, $precios] = proyectoGuardado();
 
         foreach ([4250, 4600] as $precio) {
             $this->postJson("/api/proyectos/{$id}/presupuestos", [
-                'precios' => ['madera' => $precio, "capa_{$capaId}" => 18990],
+                'precios' => [...$precios, 'madera' => $precio],
                 'moneda' => 'CLP',
             ])->assertStatus(201);
         }

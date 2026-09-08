@@ -2,7 +2,9 @@
 
 use App\Models\Escuadria;
 use App\Models\ProductoCapa;
+use App\Models\Proyecto;
 use App\Models\User;
+use App\Services\Presupuesto\CalculoProyectoService;
 use Database\Seeders\EscuadriaSeeder;
 use Database\Seeders\MonedaSeeder;
 use Database\Seeders\ProductoCapaSeeder;
@@ -256,5 +258,49 @@ describe('la techumbre también se guarda', function () {
 
         $this->assertDatabaseCount('techumbre_configs', 0);
         $this->assertDatabaseMissing('proyecto_capas', ['etapa' => 'techumbre']);
+    });
+});
+
+describe('las claves de precio son las mismas al calcular y al emitir', function () {
+    /*
+     * El formulario de precios se llena con las claves que devuelve el cálculo sin
+     * estado, y el presupuesto se emite contra las que produce el proyecto
+     * guardado. Si difieren, al emitir parece que faltaran todos los precios
+     * aunque estén todos puestos, y el mensaje de error no da ninguna pista.
+     */
+    it('coinciden exactamente', function () {
+        Sanctum::actingAs(User::factory()->create());
+
+        $cuerpo = conTechumbre();
+        $id = $this->postJson('/api/proyectos', $cuerpo)->json('id');
+
+        $alCalcular = collect($this->postJson('/api/calculos', $cuerpo)->json('materiales'))
+            ->pluck('clave')->sort()->values()->all();
+
+        $alEmitir = app(CalculoProyectoService::class)
+            ->para(Proyecto::findOrFail($id))
+            ->claves();
+
+        expect(collect($alEmitir)->sort()->values()->all())->toBe($alCalcular);
+    });
+
+    it('un presupuesto se emite con los precios que recogió el formulario', function () {
+        Sanctum::actingAs(User::factory()->create());
+
+        $cuerpo = conTechumbre();
+        $id = $this->postJson('/api/proyectos', $cuerpo)->json('id');
+
+        // Se ponen precios usando las claves del cálculo, como hace la interfaz.
+        $precios = collect($this->postJson('/api/calculos', $cuerpo)->json('materiales'))
+            ->mapWithKeys(fn ($m) => [$m['clave'] => 1000])
+            ->all();
+
+        $r = $this->postJson("/api/proyectos/{$id}/presupuestos", [
+            'precios' => $precios,
+            'moneda' => 'CLP',
+        ]);
+
+        $r->assertStatus(201);
+        expect($r->json('lineas'))->toHaveCount(count($precios));
     });
 });

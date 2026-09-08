@@ -33,7 +33,12 @@ final class CalculoProyectoService
         return new EntradaTechumbre(
             config: $techo->aDominio(),
             capas: $capas->map(fn (ProyectoCapa $c) => $c->aDominio())->values()->all(),
-            claves: $capas->map(fn (ProyectoCapa $c) => 'techo_'.$c->id)->values()->all(),
+            // La clave se arma con la posición y el producto, NO con el id de la
+            // fila. Tiene que ser idéntica a la que genera el cálculo sin estado,
+            // porque el formulario de precios se llena con esa y el presupuesto se
+            // emite con ésta: si difieren, al emitir parece que faltaran todos los
+            // precios aunque estén todos puestos.
+            claves: $capas->map(fn (ProyectoCapa $c) => 'techo_'.$c->orden.'_'.$c->producto_capa_id)->values()->all(),
             nombreMadera: sprintf(
                 'Pino %s %s m (techumbre)',
                 $escuadria?->descripcion() ?? 'de techumbre',
@@ -89,7 +94,10 @@ final class CalculoProyectoService
             // La clave lleva el id de la capa y no su posición: un proyecto puede
             // tener dos capas del mismo tipo y el formulario de precios tiene que
             // poder distinguirlas.
-            clavesCapa: $murales->map(fn (ProyectoCapa $c) => 'capa_'.$c->id)->values()->all(),
+            // Misma razón que en la techumbre: la clave se deriva de la posición y
+            // el producto, que son los dos datos que ambos caminos conocen. El id
+            // de la fila sólo existe una vez guardado.
+            clavesCapa: $murales->map(fn (ProyectoCapa $c) => 'capa_'.$c->orden.'_'.$c->producto_capa_id)->values()->all(),
             materialIds: $murales->map(fn (ProyectoCapa $c) => $c->material_id)->values()->all(),
             // Las caras de un proyecto salen de una planta, así que forman un
             // contorno cerrado y hay tantos encuentros como muros.

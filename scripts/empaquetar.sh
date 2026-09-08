@@ -78,6 +78,31 @@ fi
 npm ci --silent
 npm run build
 
+# Comprobación de que la URL de producción quedó realmente incrustada.
+#
+# Vite mete las variables en el bundle al compilar. Si falta .env.production, cae
+# en el valor por defecto —127.0.0.1— y el sitio publicado no llega a ninguna
+# parte. El error aparece recién en el navegador de quien entra, con un
+# "Failed to fetch" que no dice por qué, así que conviene detectarlo acá.
+URL_API="$(grep -oE '^VITE_API_URL=.*' .env.production | cut -d= -f2-)"
+BUNDLE="$(ls dist/assets/index-*.js | head -1)"
+
+if grep -q '127\.0\.0\.1\|localhost' "$BUNDLE"; then
+    echo >&2
+    echo "    El bundle quedó apuntando a 127.0.0.1 o localhost." >&2
+    echo "    Revisa frontend/.env.production: debe tener la URL pública de la API." >&2
+    exit 1
+fi
+
+if ! grep -qF "$URL_API" "$BUNDLE"; then
+    echo >&2
+    echo "    No encontré '$URL_API' dentro del bundle compilado." >&2
+    echo "    Algo salió mal en la compilación: no subas esto." >&2
+    exit 1
+fi
+
+echo "    API incrustada: $URL_API"
+
 # Se empaqueta el CONTENIDO de dist/, no la carpeta: lo que se sube va directo a
 # public_html, sin un nivel de más.
 tar czf "$SALIDA/frontend-$FECHA.tar.gz" -C dist .
