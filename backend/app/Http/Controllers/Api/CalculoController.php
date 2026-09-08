@@ -8,12 +8,17 @@ use App\Models\Escuadria;
 use App\Models\ProductoCapa;
 use App\Services\Capas\AplicacionCapa;
 use App\Services\Capas\Capa;
+use App\Services\Madera\ParametrosCorte;
+use App\Services\Madera\Pieza;
 use App\Services\Presupuesto\Calculadora;
 use App\Services\Presupuesto\Cara;
+use App\Services\Presupuesto\EntradaTechumbre;
 use App\Services\Presupuesto\MaterialRequerido;
 use App\Services\Tabiqueria\ConfiguracionTabique;
 use App\Services\Tabiqueria\TipoVano;
 use App\Services\Tabiqueria\Vano;
+use App\Services\Techumbre\ConfiguracionTechumbre;
+use App\Services\Techumbre\DespieceTechumbreService;
 use App\Support\Medida;
 use Illuminate\Http\JsonResponse;
 
@@ -27,7 +32,10 @@ use Illuminate\Http\JsonResponse;
  */
 class CalculoController extends Controller
 {
-    public function __construct(private readonly Calculadora $calculadora) {}
+    public function __construct(
+        private readonly Calculadora $calculadora,
+        private readonly DespieceTechumbreService $despieceTecho,
+    ) {}
 
     public function __invoke(CalcularRequest $request): JsonResponse
     {
@@ -61,6 +69,7 @@ class CalculoController extends Controller
 
         [$capas, $claves] = $this->capas($datos['capas'] ?? []);
         $caras = $this->caras($datos['caras']);
+        $techoConfig = $this->configTechumbre($datos['techumbre'] ?? null);
 
         $calculo = $this->calculadora->calcular(
             caras: $caras,
@@ -68,6 +77,7 @@ class CalculoController extends Controller
             capas: $capas,
             nombreMadera: sprintf('Pino %s %s m', $escuadria->descripcion(), number_format($largoComercial / 1000, 2, ',', '.')),
             clavesCapa: $claves,
+            techumbre: $this->entradaTechumbre($techoConfig, $datos['techumbre'] ?? null),
             // Un contorno cerrado tiene tantos encuentros como muros: cuatro caras
             // de una planta rectangular dan cuatro esquinas.
             esquinas: ($datos['tabiqueria']['contorno_cerrado'] ?? true) ? count($caras) : 0,
@@ -76,6 +86,7 @@ class CalculoController extends Controller
         return response()->json([
             'materiales' => array_map(fn (MaterialRequerido $m) => [
                 'clave' => $m->clave,
+                'etapa' => $m->etapa,
                 'nombre' => $m->nombre,
                 'unidad_venta' => $m->unidadVenta,
                 'cantidad' => $m->cantidad,
@@ -107,6 +118,22 @@ class CalculoController extends Controller
             'corte' => $calculo->planCorte->detalle(),
             'despiece' => $calculo->despiece->detalle(),
 
+            // La techumbre va aparte y no sumada: se corta de tiras distintas, así
+            // que un plan de corte combinado no se podría seguir en obra.
+            'techumbre' => $calculo->tieneTechumbre() ? [
+                'aguas' => $techoConfig?->aguas,
+                'pendiente_pct' => $techoConfig?->pendientePorcentaje(),
+                'pendiente_grados' => $techoConfig?->pendienteGrados(),
+                'largo_par_mm' => $techoConfig?->largoPar()->mm,
+                'largo_diagonal_mm' => $techoConfig?->largoDiagonal()->mm,
+                'superficie_m2' => $calculo->despieceTechumbre?->superficieBrutaM2,
+                'cerchas' => $techoConfig === null ? null : $this->despieceTecho->cuantasCerchas($techoConfig),
+                'filas_costanera' => $techoConfig === null ? null : $this->despieceTecho->filasDeCostanera($techoConfig),
+                'piezas' => array_sum(array_map(fn (Pieza $p) => $p->cantidad, $calculo->despieceTechumbre->piezas ?? [])),
+                'corte' => $calculo->planCorteTechumbre?->detalle(),
+                'despiece' => $calculo->despieceTechumbre?->detalle(),
+            ] : null,
+
             'tabiqueria' => [
                 'separacion_mm' => $config->separacion->mm,
                 'espesor_pieza_mm' => $config->escuadriaAncho->mm,
@@ -125,6 +152,77 @@ class CalculoController extends Controller
 
             'caras' => $this->diagnosticoDeCaras($caras, $config),
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $datos
+     */
+    private function configTechumbre(?array $datos): ?ConfiguracionTechumbre
+    {
+        if ($datos === null) {
+            return null;
+        }
+
+        $u = $datos['unidad'] ?? 'm';
+        $us = $datos['separacion_unidad'] ?? $u;
+
+        $cercha = Escuadria::findOrFail($datos['escuadria_id']);
+        $costanera = isset($datos['escuadria_costanera_id'])
+            ? Escuadria::find($datos['escuadria_costanera_id'])
+            : null;
+
+        return new ConfiguracionTechumbre(
+            aguas: $datos['aguas'],
+            luz: Medida::de($datos['luz'], $u),
+            largo: Medida::de($datos['largo'], $u),
+            alturaCumbrera: Medida::de($datos['altura_cumbrera'], $u),
+            escuadriaAncho: $cercha->ancho(),
+            escuadriaAlto: $cercha->alto(),
+            separacionCerchas: Medida::de($datos['separacion_cerchas'], $us),
+            separacionCostaneras: Medida::de($datos['separacion_costaneras'], $us),
+            // Si no se elige escuadría de costanera se usa la de la cercha: es más
+            // gruesa de lo necesario, pero nunca deja el techo corto.
+            costaneraAncho: ($costanera ?? $cercha)->ancho(),
+            costaneraAlto: ($costanera ?? $cercha)->alto(),
+            alero: Medida::de($datos['alero'] ?? 0, $u),
+            corte: new ParametrosCorte(
+                Medida::desdeMm((int) ($datos['largo_comercial_mm'] ?? max($cercha->largos_comerciales_mm))),
+                (float) ($datos['merma_pct'] ?? 0),
+            ),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $datos
+     */
+    private function entradaTechumbre(?ConfiguracionTechumbre $config, ?array $datos): ?EntradaTechumbre
+    {
+        if ($config === null || $datos === null) {
+            return null;
+        }
+
+        $capas = [];
+        $claves = [];
+
+        foreach (array_values($datos['capas'] ?? []) as $i => $capa) {
+            $producto = ProductoCapa::findOrFail($capa['producto_capa_id']);
+
+            $capas[] = $producto->aCapa(mermaPct: isset($capa['merma_pct']) ? (float) $capa['merma_pct'] : null);
+            $claves[] = 'techo_'.$i.'_'.$producto->id;
+        }
+
+        $escuadria = Escuadria::findOrFail($datos['escuadria_id']);
+
+        return new EntradaTechumbre(
+            config: $config,
+            capas: $capas,
+            claves: $claves,
+            nombreMadera: sprintf(
+                'Pino %s %s m (techumbre)',
+                $escuadria->descripcion(),
+                number_format($config->corte->largoComercial->metros(), 2, ',', '.'),
+            ),
+        );
     }
 
     /**

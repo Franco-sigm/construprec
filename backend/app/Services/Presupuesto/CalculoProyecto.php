@@ -10,12 +10,34 @@ use App\Services\Madera\PlanCorte;
  */
 final readonly class CalculoProyecto
 {
-    /** @param  list<MaterialRequerido>  $materiales */
+    /**
+     * `despiece` y `planCorte` son los de los muros; los de la techumbre van
+     * aparte porque se cortan de tiras distintas y con otra merma, y sumarlos
+     * daría un plan de corte que no se puede seguir en obra.
+     *
+     * `materiales` sí los trae todos juntos, cada uno con su etapa: es la lista de
+     * compra, y en la barraca se compra una sola vez.
+     *
+     * @param  list<MaterialRequerido>  $materiales
+     */
     public function __construct(
         public Despiece $despiece,
         public PlanCorte $planCorte,
         public array $materiales,
+        public ?Despiece $despieceTechumbre = null,
+        public ?PlanCorte $planCorteTechumbre = null,
     ) {}
+
+    public function tieneTechumbre(): bool
+    {
+        return $this->despieceTechumbre !== null;
+    }
+
+    /** @return list<MaterialRequerido> */
+    public function deEtapa(string $etapa): array
+    {
+        return array_values(array_filter($this->materiales, fn (MaterialRequerido $m) => $m->etapa === $etapa));
+    }
 
     public function material(string $clave): ?MaterialRequerido
     {

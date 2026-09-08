@@ -242,3 +242,103 @@ describe('encaje de los vanos con la trama', function () {
             ->and((float) $r->json('obra.superficie_vanos_m2'))->toBe(3.0);
     });
 });
+
+describe('techumbre', function () {
+    function conTecho(array $sobrescribir = []): array
+    {
+        $cercha = Escuadria::where('nominal', '3x4')->where('estado', 'seco_cepillado')->firstOrFail();
+        $zinc = ProductoCapa::where('nombre', 'like', 'Zinc acanalado%3,66%')->firstOrFail();
+
+        return cuerpo(['techumbre' => array_replace([
+            'aguas' => 2,
+            'luz' => 4,
+            'largo' => 6,
+            'altura_cumbrera' => 1,
+            'alero' => 0.5,
+            'unidad' => 'm',
+            'escuadria_id' => $cercha->id,
+            'largo_comercial_mm' => 4000,
+            'separacion_cerchas' => 1,
+            'separacion_costaneras' => 1.1,
+            'merma_pct' => 5,
+            'capas' => [['producto_capa_id' => $zinc->id]],
+        ], $sobrescribir)]);
+    }
+
+    it('no calcula techo si no se pide', function () {
+        // Un proyecto puede quedarse en los muros mientras se decide el techo.
+        $r = $this->postJson('/api/calculos', cuerpo());
+
+        expect($r->json('techumbre'))->toBeNull()
+            ->and(collect($r->json('materiales'))->pluck('etapa')->unique()->all())->toBe(['muros']);
+    });
+
+    it('deriva la pendiente de la altura de cumbrera', function () {
+        // 1 m de subida sobre 2 m de avance por faldón: 50 % y 26,57°.
+        $r = $this->postJson('/api/calculos', conTecho());
+
+        $r->assertOk()
+            ->assertJsonPath('techumbre.pendiente_pct', 50)
+            ->assertJsonPath('techumbre.pendiente_grados', 26.57);
+    });
+
+    it('cuenta cerchas y costaneras', function () {
+        $r = $this->postJson('/api/calculos', conTecho());
+
+        expect($r->json('techumbre.cerchas'))->toBe(7)
+            // El par mide 2,795 m: a 1,10 caben 3 tramos, o sea 4 filas.
+            ->and($r->json('techumbre.filas_costanera'))->toBe(4)
+            ->and($r->json('techumbre.largo_par_mm'))->toBe(2795);
+    });
+
+    it('marca cada material con su etapa', function () {
+        $r = $this->postJson('/api/calculos', conTecho());
+        $etapas = collect($r->json('materiales'))->groupBy('etapa');
+
+        expect($etapas->keys()->all())->toBe(['muros', 'techumbre'])
+            ->and($etapas['techumbre'])->toHaveCount(2);
+    });
+
+    it('separa el plan de corte del techo del de los muros', function () {
+        // Se corta de tiras distintas: un plan combinado no se podría seguir.
+        $r = $this->postJson('/api/calculos', conTecho());
+
+        expect($r->json('techumbre.corte.largo_comercial_mm'))->toBe(4000)
+            ->and($r->json('corte.largo_comercial_mm'))->toBe(3200);
+    });
+
+    it('a una agua lleva la mitad de pares', function () {
+        // Con luz de 3 m para que el par salga de una tira de 4.
+        $r = $this->postJson('/api/calculos', conTecho(['aguas' => 1, 'luz' => 3, 'alero' => 0.3]));
+
+        $roles = collect($r->json('techumbre.despiece.piezas'))->keyBy('rol');
+
+        expect($roles['par']['cantidad'])->toBe($roles['tirante']['cantidad'])
+            ->and($roles)->not->toHaveKey('cumbrera');
+    });
+
+    it('rechaza un tirante que no sale de una tira', function () {
+        $r = $this->postJson('/api/calculos', conTecho(['luz' => 6, 'largo_comercial_mm' => 4000]));
+
+        $r->assertStatus(422);
+        expect($r->json('message'))->toContain('empalmar a media luz');
+    });
+
+    it('rechaza una pendiente donde el agua se empoza', function () {
+        $r = $this->postJson('/api/calculos', conTecho(['altura_cumbrera' => 0.05]));
+
+        $r->assertStatus(422);
+    });
+
+    it('acepta la techumbre en pies', function () {
+        // La misma regla que los muros: cada campo elige su unidad.
+        $r = $this->postJson('/api/calculos', conTecho([
+            'unidad' => 'ft', 'luz' => 10, 'largo' => 20, 'altura_cumbrera' => 3, 'alero' => 1.5,
+            'separacion_cerchas' => 1, 'separacion_costaneras' => 1.1, 'separacion_unidad' => 'm',
+        ]));
+
+        $r->assertOk();
+        // 10 pies de luz son 3,048 m: el avance por faldón es 1,524.
+        expect($r->json('techumbre.pendiente_pct'))->toBeGreaterThan(59.0);
+    });
+});

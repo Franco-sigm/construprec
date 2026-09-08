@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $material_id
  * @property int $orden
  * @property string $origen
+ * @property string $etapa
  * @property numeric-string $cantidad_comprar
  * @property numeric-string $precio_unitario
  * @property numeric-string $tasa_cambio
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array<string, mixed>|null $detalle
  */
 #[Fillable([
-    'presupuesto_id', 'material_id', 'orden', 'origen',
+    'presupuesto_id', 'material_id', 'orden', 'origen', 'etapa',
     'magnitud', 'unidad_magnitud', 'merma_pct',
     'nombre_material', 'categoria_material', 'unidad_venta', 'rendimiento',
     'precio_unitario', 'moneda_origen', 'tasa_cambio',

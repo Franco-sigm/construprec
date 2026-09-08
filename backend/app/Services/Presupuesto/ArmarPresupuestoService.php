@@ -63,6 +63,7 @@ final class ArmarPresupuestoService
                     'material_id' => $material->materialId,
                     'orden' => $orden + 1,
                     'origen' => $material->origen,
+                    'etapa' => $material->etapa,
                     'magnitud' => $material->magnitud,
                     'unidad_magnitud' => $material->unidadMagnitud,
                     'merma_pct' => $material->mermaPct,

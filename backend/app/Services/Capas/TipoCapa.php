@@ -18,6 +18,15 @@ enum TipoCapa: string
     case Membrana = 'membrana';
 
     /**
+     * Lo que recibe el agua: zinc, teja, panel.
+     *
+     * Va sobre la techumbre y no sobre el muro, y por eso se calcula sobre la
+     * superficie de faldon, que es mayor que la planta: un techo de 50% de
+     * pendiente cubre casi 12% mas metros de los que ocupa en el suelo.
+     */
+    case Cubierta = 'cubierta';
+
+    /**
      * Si por defecto se descuenta la superficie de puertas y ventanas.
      *
      * No es lo mismo en todas las capas y la diferencia es plata:
@@ -36,9 +45,18 @@ enum TipoCapa: string
     public function descuentaVanosPorDefecto(): bool
     {
         return match ($this) {
-            self::Membrana => false,
+            // La membrana se despliega corrida sobre la fachada y se recorta
+            // despues. La cubierta no descuenta nada porque el techo no tiene
+            // vanos: una claraboya se resta aparte cuando exista.
+            self::Membrana, self::Cubierta => false,
             default => true,
         };
+    }
+
+    /** Si la capa va sobre la techumbre y no sobre los muros. */
+    public function esDeTechumbre(): bool
+    {
+        return $this === self::Cubierta;
     }
 
     public function etiqueta(): string
@@ -49,6 +67,7 @@ enum TipoCapa: string
             self::RevestimientoExterior => 'Revestimiento exterior',
             self::Aislante => 'Aislante termico',
             self::Membrana => 'Membrana hidrofuga',
+            self::Cubierta => 'Cubierta',
         };
     }
 }

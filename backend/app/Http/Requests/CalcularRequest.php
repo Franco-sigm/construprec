@@ -65,6 +65,26 @@ class CalcularRequest extends FormRequest
             // caras. Una pared suelta no tiene ninguna.
             'tabiqueria.contorno_cerrado' => ['nullable', 'boolean'],
 
+            // La techumbre es opcional: un proyecto puede quedarse en los muros
+            // mientras se decide el techo.
+            'techumbre' => ['nullable', 'array'],
+            'techumbre.aguas' => ['required_with:techumbre', 'integer', 'min:1', 'max:2'],
+            'techumbre.luz' => ['required_with:techumbre', 'numeric', 'gt:0'],
+            'techumbre.largo' => ['required_with:techumbre', 'numeric', 'gt:0'],
+            'techumbre.altura_cumbrera' => ['required_with:techumbre', 'numeric', 'gt:0'],
+            'techumbre.alero' => ['nullable', 'numeric', 'min:0'],
+            'techumbre.unidad' => ['nullable', $unidades],
+            'techumbre.escuadria_id' => ['required_with:techumbre', 'integer', 'exists:escuadrias,id'],
+            'techumbre.escuadria_costanera_id' => ['nullable', 'integer', 'exists:escuadrias,id'],
+            'techumbre.largo_comercial_mm' => ['nullable', 'integer', 'min:1000', 'max:14000'],
+            'techumbre.separacion_cerchas' => ['required_with:techumbre', 'numeric', 'gt:0'],
+            'techumbre.separacion_costaneras' => ['required_with:techumbre', 'numeric', 'gt:0'],
+            'techumbre.separacion_unidad' => ['nullable', $unidades],
+            'techumbre.merma_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'techumbre.capas' => ['nullable', 'array', 'max:8'],
+            'techumbre.capas.*.producto_capa_id' => ['required', 'integer', 'exists:productos_capa,id'],
+            'techumbre.capas.*.merma_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+
             'capas' => ['nullable', 'array', 'max:12'],
             'capas.*.producto_capa_id' => ['required', 'integer', 'exists:productos_capa,id'],
             'capas.*.aplicacion' => ['nullable', Rule::enum(AplicacionCapa::class)],
@@ -89,6 +109,12 @@ class CalcularRequest extends FormRequest
         'vano' => [100, 20_000, 'Las medidas de un vano deben estar entre 10 cm y 20 m.'],
         'antepecho' => [0, 20_000, 'El antepecho no puede pasar de 20 m.'],
         'separacion' => [100, 2_000, 'La separacion entre pies derechos debe estar entre 10 cm y 2 m.'],
+        'luz' => [1_000, 30_000, 'La luz de la techumbre debe estar entre 1 m y 30 m.'],
+        'largo_techo' => [1_000, 200_000, 'El largo de la techumbre debe estar entre 1 m y 200 m.'],
+        'cumbrera' => [100, 10_000, 'La altura de cumbrera debe estar entre 10 cm y 10 m.'],
+        'alero' => [0, 3_000, 'El alero no puede pasar de 3 m.'],
+        'separacion_cerchas' => [400, 3_000, 'Las cerchas van entre 40 cm y 3 m.'],
+        'separacion_costaneras' => [200, 2_500, 'Las costaneras van entre 20 cm y 2,5 m.'],
     ];
 
     public function withValidator(Validator $validator): void
@@ -122,6 +148,22 @@ class CalcularRequest extends FormRequest
                 $datos['tabiqueria']['separacion_unidad'] ?? 'm',
                 'separacion',
             );
+
+            $techo = $datos['techumbre'] ?? null;
+
+            if ($techo === null) {
+                return;
+            }
+
+            $u = $techo['unidad'] ?? 'm';
+            $us = $techo['separacion_unidad'] ?? $u;
+
+            $this->enRango($v, 'techumbre.luz', $techo['luz'] ?? null, $u, 'luz');
+            $this->enRango($v, 'techumbre.largo', $techo['largo'] ?? null, $u, 'largo_techo');
+            $this->enRango($v, 'techumbre.altura_cumbrera', $techo['altura_cumbrera'] ?? null, $u, 'cumbrera');
+            $this->enRango($v, 'techumbre.alero', $techo['alero'] ?? 0, $u, 'alero');
+            $this->enRango($v, 'techumbre.separacion_cerchas', $techo['separacion_cerchas'] ?? null, $us, 'separacion_cerchas');
+            $this->enRango($v, 'techumbre.separacion_costaneras', $techo['separacion_costaneras'] ?? null, $us, 'separacion_costaneras');
         });
     }
 
@@ -158,6 +200,9 @@ class CalcularRequest extends FormRequest
             'tabiqueria.separacion.required' => 'Falta la separación entre pies derechos.',
             'capas.*.producto_capa_id.exists' => 'Uno de los productos elegidos no existe en el catálogo.',
             'caras.*.vanos.*.desde_tramo.min' => 'Los pies derechos se cuentan desde 1.',
+            'techumbre.aguas.max' => 'Por ahora la techumbre admite una o dos aguas.',
+            'techumbre.escuadria_id.required_with' => 'Falta elegir la escuadría de la cercha.',
+            'techumbre.altura_cumbrera.required_with' => 'Falta cuánto sube la cumbrera sobre el muro: de ahí sale la pendiente.',
         ];
     }
 

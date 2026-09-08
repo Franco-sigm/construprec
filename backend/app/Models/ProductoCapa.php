@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\Model;
  * @property int|null $largo_mm
  * @property int|null $ancho_mm
  * @property int $traslape_mm
+ * @property int|null $separacion_costaneras_mm
+ * @property bool $requiere_tablero
  * @property int $piezas_por_unidad
  * @property numeric-string|null $rendimiento_m2
  * @property bool $fraccionable
@@ -29,7 +31,8 @@ use Illuminate\Database\Eloquent\Model;
 #[Table(name: 'productos_capa')]
 #[Fillable([
     'tipo', 'nombre', 'marca', 'unidad_venta', 'largo_mm', 'ancho_mm', 'espesor_mm',
-    'traslape_mm', 'piezas_por_unidad', 'rendimiento_m2', 'fraccionable',
+    'traslape_mm', 'separacion_costaneras_mm', 'requiere_tablero',
+    'piezas_por_unidad', 'rendimiento_m2', 'fraccionable',
     'merma_sugerida_pct', 'pais', 'activo',
 ])]
 class ProductoCapa extends Model
@@ -42,6 +45,8 @@ class ProductoCapa extends Model
             'ancho_mm' => 'integer',
             'espesor_mm' => 'decimal:2',
             'traslape_mm' => 'integer',
+            'separacion_costaneras_mm' => 'integer',
+            'requiere_tablero' => 'boolean',
             'piezas_por_unidad' => 'integer',
             'rendimiento_m2' => 'decimal:4',
             'fraccionable' => 'boolean',

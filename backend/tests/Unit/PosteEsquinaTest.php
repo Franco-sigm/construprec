@@ -7,12 +7,18 @@ use App\Services\Presupuesto\Calculadora;
 use App\Services\Presupuesto\Cara;
 use App\Services\Tabiqueria\ConfiguracionTabique;
 use App\Services\Tabiqueria\DespieceService;
+use App\Services\Techumbre\DespieceTechumbreService;
 use App\Support\Medida;
 use App\Support\Unidad;
 
 function motor(): Calculadora
 {
-    return new Calculadora(new DespieceService, new PlanCorteService, new ConsumoCapaService);
+    return new Calculadora(
+        new DespieceService,
+        new PlanCorteService,
+        new ConsumoCapaService,
+        new DespieceTechumbreService,
+    );
 }
 
 function configEsquina(int $piezasPorEsquina = 3): ConfiguracionTabique

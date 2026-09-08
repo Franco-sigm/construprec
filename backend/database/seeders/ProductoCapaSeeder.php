@@ -55,12 +55,38 @@ class ProductoCapaSeeder extends Seeder
             [TipoCapa::Aislante, 'Lana mineral 50 mm, rollo 13,5 m²', 'rollo', null, null, 50.0, 0, 1, 13.5, 5],
             [TipoCapa::Aislante, 'Poliestireno expandido 50 mm 1,00 x 2,00', 'plancha', 2000, 1000, 50.0, 0, 1, null, 5],
 
+            // --- cubierta ---
+            // El zinc acanalado mide 851 mm y se monta traslapando ondas: de ahí
+            // quedan unos 751 a la vista. Las costaneras van entre 1,0 y 1,2 m
+            // según pendiente y carga; se propone 1,1 como punto medio.
+            [TipoCapa::Cubierta, 'Zinc acanalado 0,35 mm 0,851 x 3,00 m', 'plancha', 3000, 851, 0.35, 100, 1, null, 8, 1100, false],
+            [TipoCapa::Cubierta, 'Zinc acanalado 0,35 mm 0,851 x 3,66 m', 'plancha', 3660, 851, 0.35, 100, 1, null, 8, 1100, false],
+
+            // El 5V declara su avance útil directo —819 mm— que ya viene neto del
+            // traslape, así que acá el traslape va en cero y no se descuenta dos
+            // veces.
+            [TipoCapa::Cubierta, 'Zincalum 5V 0,35 mm, avance útil 819 mm x 3,00 m', 'plancha', 3000, 819, 0.35, 0, 1, null, 8, 1100, false],
+
+            // La teja asfáltica no se clava sobre costaneras sino sobre tablero
+            // continuo, así que su separación va nula y se marca que lo exige: sin
+            // eso se cotizaría un techo que no se puede armar.
+            [TipoCapa::Cubierta, 'Teja asfáltica, paquete de 21 (rinde 3 m²)', 'paquete', null, null, null, 0, 1, 3.0, 10, null, true],
+
+            [TipoCapa::Cubierta, 'Teja de arcilla, por unidad', 'teja', null, null, null, 0, 1, 0.077, 10, 350, false],
+            [TipoCapa::Cubierta, 'Panel PV-4, a medida', 'm²', null, null, null, 0, 1, 1.0, 5, 1500, false],
+
             // --- membrana hidrófuga ---
             [TipoCapa::Membrana, 'Membrana hidrófuga 1,5 x 50 m', 'rollo', null, null, null, 0, 1, 75.0, 10],
             [TipoCapa::Membrana, 'Fieltro asfáltico 15 lb, rollo 27 m²', 'rollo', null, null, null, 0, 1, 27.0, 10],
         ];
 
-        foreach ($productos as [$tipo, $nombre, $unidad, $largo, $ancho, $espesor, $traslape, $piezas, $rendimiento, $merma]) {
+        foreach ($productos as $fila) {
+            // Las filas de cubierta traen dos campos más; el resto los deja en su
+            // valor por defecto.
+            [$tipo, $nombre, $unidad, $largo, $ancho, $espesor, $traslape, $piezas, $rendimiento, $merma] = $fila;
+            $separacionCostaneras = $fila[10] ?? null;
+            $requiereTablero = $fila[11] ?? false;
+
             DB::table('productos_capa')->updateOrInsert(
                 ['nombre' => $nombre, 'pais' => 'CL'],
                 [
@@ -70,6 +96,8 @@ class ProductoCapaSeeder extends Seeder
                     'ancho_mm' => $ancho,
                     'espesor_mm' => $espesor,
                     'traslape_mm' => $traslape,
+                    'separacion_costaneras_mm' => $separacionCostaneras,
+                    'requiere_tablero' => $requiereTablero,
                     'piezas_por_unidad' => $piezas,
                     'rendimiento_m2' => $rendimiento,
                     'fraccionable' => false,

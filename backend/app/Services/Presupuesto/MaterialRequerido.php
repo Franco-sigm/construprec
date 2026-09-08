@@ -29,6 +29,8 @@ final readonly class MaterialRequerido
         public float $cantidad,
         public float $cantidadComprar,
         public string $origen,
+        /** muros | techumbre. De qué parte de la obra viene la partida. */
+        public string $etapa = 'muros',
         public float $mermaPct = 0.0,
         public ?int $materialId = null,
         public array $detalle = [],
@@ -49,6 +51,7 @@ final readonly class MaterialRequerido
             'cantidad_comprar' => $this->cantidadComprar,
             'material_id' => $this->materialId,
             'origen' => $this->origen,
+            'etapa' => $this->etapa,
         ];
     }
 }
